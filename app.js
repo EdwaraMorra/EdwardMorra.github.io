@@ -1,19 +1,23 @@
 // app.js
 document.getElementById('loadContacts').addEventListener('click', async () => {
-    try {
-        if (navigator.share) {
-            // Запрос контактов через Web Share API
-            await navigator.share({
-                title: 'Доступ к контактам',
-                text: 'Разрешите доступ к вашим контактам',
+  async function fetchContacts() {
+    if ('contacts' in navigator && 'ContactsManager' in window) {
+        try {
+            const contacts = await navigator.contacts.select(['name', 'tel'], { multiple: true });
+            contacts.forEach(contact => {
+                const name = contact.name ? contact.name.join(' ') : 'Неизвестно';
+                const phone = contact.tel ? contact.tel[0] : 'Нет номера';
+                console.log(`Имя: ${name}, Телефон: ${phone}`);
             });
-        } else {
-            Telegram.WebApp.showAlert('Web Share API не поддерживается в этом браузере');
+        } catch (error) {
+            console.error('Ошибка при получении контактов:', error);
         }
-    } catch (error) {
-        console.error('Ошибка:', error);
+    } else {
+        console.error('API контактов не поддерживается в этом браузере');
     }
-});
+}};
+
+
 
 // Обработка данных контактов (пример для vCard)
 function parseContacts(data) {
