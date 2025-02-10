@@ -1,21 +1,33 @@
 // app.js
 document.getElementById('loadContacts').addEventListener('click', async () => {
-  async function fetchContacts() {
-    if ('contacts' in navigator && 'ContactsManager' in window) {
-        try {
-            const contacts = await navigator.contacts.select(['name', 'tel'], { multiple: true });
-            contacts.forEach(contact => {
-                const name = contact.name ? contact.name.join(' ') : 'Неизвестно';
-                const phone = contact.tel ? contact.tel[0] : 'Нет номера';
-                console.log(`Имя: ${name}, Телефон: ${phone}`);
-            });
-        } catch (error) {
-            console.error('Ошибка при получении контактов:', error);
-        }
-    } else {
-        console.error('API контактов не поддерживается в этом браузере');
-    }
-}});
+  interface ContactsManager {
+  select: (
+    properties: ContactProperty[],
+    options?: ContactSelectOptions
+  ) => Promise<ContactInfo[]>;
+}
+
+interface ContactInfo {
+  address: Array<ContactAddress>;
+  email: Array<string>;
+  icon: Blob;
+  name: Array<string>;
+  tel: Array<string>;
+};
+
+async function selectContacts () {
+  const contacts = await navigator.contacts.select(['name', 'tel'], { multiple: true });
+
+  if (!contacts.length) {
+    // нет выбранных контактов
+    return;
+  }
+
+  return contacts;
+}
+
+selectContacts();
+});
 
 
 
