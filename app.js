@@ -1,32 +1,29 @@
 // app.js
 document.getElementById('loadContacts').addEventListener('click', async () => {
-  interface ContactsManager {
-  select: (
-    properties: ContactProperty[],
-    options?: ContactSelectOptions
-  ) => Promise<ContactInfo[]>;
+const supported = ('contacts' in navigator && 'ContactsManager' in window)
+
+interface ContactsManager {
+  getProperties: () => Promise<ContactProperty[]>;
 }
 
-interface ContactInfo {
-  address: Array<ContactAddress>;
-  email: Array<string>;
-  icon: Blob;
-  name: Array<string>;
-  tel: Array<string>;
-};
+enum ContactProperty {
+  "address" = "address",
+  "email" = "email",
+  "icon" = "icon",
+  "name" = "name",
+  "tel" = "tel",
+}
 
-async function selectContacts () {
-  const contacts = await navigator.contacts.select(['name', 'tel'], { multiple: true });
-
-  if (!contacts.length) {
-    // нет выбранных контактов
-    return;
+async function checkPropertiesSupport(): Promise<void> {
+  try {
+    const supportedProperties = await navigator.contacts.getProperties();
+    setContactProperties(supportedProperties);
+  } catch {
+    console.warn(
+      "This browser doesn't support the Contact Picker API"
+    );
   }
-
-  return contacts;
 }
-
-selectContacts();
 });
 
 
