@@ -15,7 +15,7 @@ document.getElementById('loadContacts').addEventListener('click', async () => {
     } else {
         console.error('API контактов не поддерживается в этом браузере');
     }
-}};
+}});
 
 
 
