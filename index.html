@@ -1,38 +1,61 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Контакты в Telegram</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: var(--tg-theme-bg-color, #ffffff);
-            color: var(--tg-theme-text-color, #000000);
-            padding: 20px;
-        }
-        #contacts-list {
-            margin-top: 20px;
-        }
-        .contact-item {
-            padding: 10px;
-            border-bottom: 1px solid #ddd;
-        }
-        button {
-            background-color: var(--tg-theme-button-color, #0088cc);
-            color: var(--tg-theme-button-text-color, #ffffff);
-            padding: 12px 24px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            width: 100%;
+        /* Стили для центрирования изображения */
+        .centered-image {
+            position: fixed;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            max-width: 90%;
+            max-height: 90%;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
         }
     </style>
 </head>
 <body>
-    <button id="loadContacts">Показать контакты</button>
-    <div id="contacts-list"></div>
-    <script src="app.js"></script>
+    <button id="loadContacts">Выбрать фото из галереи</button>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const loadButton = document.getElementById('loadContacts');
+            
+            // Создаем скрытый input для выбора файлов
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = 'image/*';
+            fileInput.style.display = 'none';
+            document.body.appendChild(fileInput);
+
+            // Обработчик клика по кнопке
+            loadButton.addEventListener('click', function() {
+                fileInput.click(); // Имитируем клик по input
+            });
+
+            // Обработчик выбора файла
+            fileInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    
+                    reader.onload = function(event) {
+                        // Удаляем предыдущее изображение
+                        const oldImg = document.querySelector('.centered-image');
+                        if(oldImg) oldImg.remove();
+
+                        // Создаем новое изображение
+                        const img = new Image();
+                        img.src = event.target.result;
+                        img.className = 'centered-image';
+                        
+                        document.body.appendChild(img);
+                    };
+                    
+                    reader.readAsDataURL(file);
+                }
+            });
+        });
+    </script>
 </body>
 </html>
