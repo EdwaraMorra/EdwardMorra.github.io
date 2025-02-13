@@ -2,70 +2,503 @@
 <html>
 <head>
     <style>
-        /* Стили для центрирования изображения */
-        .centered-image {
-            position: fixed;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
-            max-width: 90%;
-            max-height: 90%;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
-        }
-      
-      #loadContacts{
-        background-color: var(--tg-theme-button-color, #0088cc);
-            color: var(--tg-theme-button-text-color, #ffffff);
-            padding: 12px 24px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            width: 100%;
-      }
-    </style>
-</head>
-<body>
-    <button id="loadContacts">Выбрать фото из галереи</button>
+  .toggle{
+  margin: 0 0 10px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: stretch;
+  flex-flow: row nowrap;
+  align-content: flex-start;
+  width: 600px;
+  height 300px;
+}
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const loadButton = document.getElementById('loadContacts');
-            
-            // Создаем скрытый input для выбора файлов
-            const fileInput = document.createElement('input');
-            fileInput.type = 'file';
-            fileInput.accept = 'image/*';
-            fileInput.style.display = 'none';
-            document.body.appendChild(fileInput);
+body {
+  font-family: 'PT Root UI';
+}
+canvas {
+  display: block;
+  border: 1px solid white;
+}
+#save, button {
+  border: 1px solid #9F00FF;
+  text-decoration: none;
+  color: #fff;
+  font-size: 16pt;
+  background-color: #9F00FF;
+  padding: 10px;
+  margin-top: 15px;
+  display: inline-block;
+  border-radius: 25px;
+  width: 150px;
+  height: 45px;
+}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.js" integrity="sha512-hOJ0mwaJavqi11j0XoBN1PtOJ3ykPdP6lp9n29WVVVVZxgx9LO7kMwyyhaznGJ+kbZrDN1jFZMt2G9bxkOHWFQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<div class="toggle">
+  <div class="top_menu"><button onclick="flipX()" style="cursor:pointer;">Отразить X</button>
+  <button onclick="flipY()" style="cursor:pointer;">Отразить Y</button></div>
+    <button id="save" onclick="save()" style="cursor:pointer;">Сохранить</button>
+</div>
+<canvas id="c" style="width:500px; height:500px; border: 1px solid #333;"></canvas>
+<script>
+  var  path = new fabric.Path('M 170.000 210.000L 217.023 234.721 L 208.042 182.361 L 246.085 145.279 L 193.511 137.639 L 170.000 90.000 L 146.489 137.639 L 93.915 145.279 L 131.958 182.361 L 122.977 234.721 L 170.000 210.000 Z');
 
-            // Обработчик клика по кнопке
-            loadButton.addEventListener('click', function() {
-                fileInput.click(); // Имитируем клик по input
-            });
+var startPoints = [
+    {x: 0, y: 0},
+    {x: 100, y: 0},
+    {x: 100, y: 75},
+    {x: 75, y: 75},
+    {x: 75, y: 100},
+    {x: 50, y: 75},
+    {x: 0, y: 75},
+  ];
 
-            // Обработчик выбора файла
-            fileInput.addEventListener('change', function(e) {
-                const file = e.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    
-                    reader.onload = function(event) {
-                        // Удаляем предыдущее изображение
-                        const oldImg = document.querySelector('.centered-image');
-                        if(oldImg) oldImg.remove();
 
-                        // Создаем новое изображение
-                        const img = new Image();
-                        img.src = event.target.result;
-                        img.className = 'centered-image';
-                        
-                        document.body.appendChild(img);
-                    };
-                    
-                    reader.readAsDataURL(file);
-                }
-            });
+var canvas = new fabric.Canvas('c',{
+  width: 600,
+  height: 600,
+});
+var ltext = 'Pinterest (Пинтерест) — социальный\nинтернет-сервис, фотохостинг, позволяющий\nпользователям добавлять в режиме онлайн\nизображения, помещать их в тематические';
+var text = new fabric.Text(ltext, { fill: 'white', left: 10, top: 300, charSpacing: 25, width: 150, fontSize: 25, fontFamily: 'PT Root UI', originX: 'center', originY: 'center', objectCaching: false});
+canvas.add(text);
+
+
+  fabric.Object.prototype.transparentCorners = false;
+  fabric.Object.prototype.cornerColor = 'white';
+  fabric.Object.prototype.cornerStrokeColor = '#006eff';
+  fabric.Object.prototype.cornerFill = 'red';
+  fabric.Object.prototype.cornerStyle = 'rect';
+  fabric.Object.prototype.cornerSize = 5;
+  fabric.Object.prototype.borderColor = '#006eff';
+  fabric.Object.prototype.centeredScaling = false;
+  canvas.backgroundColor="red";
+
+var circle = new fabric.Circle({
+  left: 10,
+  top: 10,
+  radius: 70,
+  dirty: false,
+  originX: 'center',
+  originY: 'center',
+});
+
+var gradient = new fabric.Gradient({
+  type: 'linear',
+  gradientUnits: 'pixels', // or 'percentage'
+  coords: { x1: 0, y1: 0, x2: 0, y2: circle.height },
+  colorStops:[
+    { offset: 0, color: 'white' },
+    { offset: 1, color: '#f0700b00'}
+  ]
+});
+
+
+  var polygon = new fabric.Polygon(startPoints, {
+    left: 0,
+    top: 0,
+     rx: 10,
+    ry: 10,
+    selectable: true,
+    objectCaching: false,
+    strokeLineJoin : 'round',
+    stroke: gradient,
+    strokeWidth: 20,
+    dirty: false,
+    originX: 'center',
+  originY: 'center',
+  });
+polygon.set('fill', gradient);
+canvas.add(polygon);
+
+circle.set('fill', gradient);
+canvas.add(circle);
+
+const rect = new fabric.Rect({
+  left: 10,
+  top: 10,
+  width: 100,
+  height: 100,
+  fill: 'blue',
+  rx: 10,
+  ry: 10,
+  objectCaching: false,
+  dirty: false,
+  originX: 'center',
+  originY: 'center',
+})
+
+rect.on('scaling', function() {
+ this.set({
+    rx: 20 * (2 / this.scaleX),
+    ry: 20 * (2 / this.scaleY)
+  });
+})
+
+canvas.add(rect).renderAll()
+
+
+path.set({ left: 120, top: 120, strokeLineJoin: 'round', strokeWidth: 20, stroke: 'black' });
+canvas.add(path);
+
+
+var LabeledRect = new fabric.util.createClass(fabric.Rect, {
+  type: "roundedRect",
+  topLeft: [0, 0],
+  topRight: [0, 0],
+  bottomLeft: [0, 0],
+  bottomRight: [0, 0],
+
+  _render: function(ctx) {
+    var w = this.width,
+      h = this.height,
+      x = -this.width / 2,
+      y = -this.height / 2,
+      /* "magic number" for bezier approximations of arcs (http://itc.ktu.lt/itc354/Riskus354.pdf) */
+      k = 1 - 0.5522847498;
+    ctx.beginPath();
+
+    // top left
+    ctx.moveTo(x + this.topLeft[0], y);
+
+    // line to top right
+    ctx.lineTo(x + w - this.topRight[0], y);
+    ctx.bezierCurveTo(x + w - k * this.topRight[0], y, x + w, y + k * this.topRight[1], x + w, y + this.topRight[1]);
+
+    // line to bottom right
+    ctx.lineTo(x + w, y + h - this.bottomRight[1]);
+    ctx.bezierCurveTo(x + w, y + h - k * this.bottomRight[1], x + w - k * this.bottomRight[0], y + h, x + w - this.bottomRight[0], y + h);
+
+    // line to bottom left
+    ctx.lineTo(x + this.bottomLeft[0], y + h);
+    ctx.bezierCurveTo(x + k * this.bottomLeft[0], y + h, x, y + h - k * this.bottomLeft[1], x, y + h - this.bottomLeft[1]);
+
+    // line to top left
+    ctx.lineTo(x, y + this.topLeft[1]);
+    ctx.bezierCurveTo(x, y + k * this.topLeft[1], x + k * this.topLeft[0], y, x + this.topLeft[0], y);
+
+    ctx.closePath();
+
+    this._renderPaintInOrder(ctx);
+  }
+})
+
+
+var labeledRect = new LabeledRect({
+  width: 100,
+  height: 50,
+  left: 100,
+  top: 100,
+  fill: '#faa',
+  topLeft: [10, 10],
+  topRight: [20, 20],
+  bottomLeft: [20, 20],
+  bottomRight: [20, 20],
+  objectCaching: false,
+  dirty: false,
+  originX: 'center',
+  originY: 'center',
+});
+
+labeledRect.on('scaling', function() {
+ this.set({
+   topLeft: [40 * (1 / this.scaleX), 40 * (1 / this.scaleY)],
+   topRight: [20 * (1 / this.scaleX), 20 * (1 / this.scaleY)],
+   bottomLeft: [20 * (1 / this.scaleX), 20 * (1 / this.scaleY)],
+   bottomRight: [20 * (1 / this.scaleX), 20 * (1 / this.scaleY)],
+  });
+})
+
+canvas.add(labeledRect).renderAll();
+
+var line9 = new fabric.Line([
+    canvas.width / 2, 0,
+    canvas.width / 2, canvas.height
+], {
+    strokeDashArray: [5, 5],
+    stroke: 'red',
+})
+
+line9.selectable = false;
+line9.evented = false;
+
+var line10 = new fabric.Line([
+    0, canvas.height / 2,
+    canvas.width, canvas.height / 2
+
+], {
+    strokeDashArray: [5, 5],
+    stroke: 'blue',
+    strokeWidth: 1,
+})
+
+line10.selectable = false;
+line10.evented = false;
+
+
+
+var snapZone = 15;
+
+canvas.on('object:moving', function(options) {
+     const objectCenter = options.target.getCenterPoint();
+
+
+  if (objectCenter.x > canvas.width / 2 - snapZone &&
+    objectCenter.x < canvas.width / 2 + snapZone) {
+    // Set the left position of the object to align its center with the horizontal center of the canvas
+    options.target.set({
+      left: canvas.width / 2,
+    }).setCoords();
+
+        canvas.add(line9);
+
+        document.addEventListener("mouseup", () => {
+            canvas.remove(line9);
         });
-    </script>
-</body>
+
+    } else {
+        canvas.remove(line9);
+    }
+
+    var objectMiddleVertical = options.target.top + (options.target.height * options.target.scaleY) / 2;
+
+      if (objectCenter.y > canvas.height / 2 - snapZone &&
+    objectCenter.y < canvas.height / 2 + snapZone) {
+    // Set the top position of the object to align its center with the vertical center of the canvas
+    options.target.set({
+      top: canvas.height / 2,
+    }).setCoords();
+
+        canvas.add(line10);
+
+        document.addEventListener("mouseup", () => {
+            canvas.remove(line10);
+        });
+
+    } else {
+        canvas.remove(line10);
+    }
+
+});
+
+initAligningGuidelines()
+/**
+ *
+ * Draw smart guides
+ */
+const aligningLineOffset = 5
+const aligningLineMargin = 4
+const aligningLineWidth = 1
+const aligningLineColor = 'rgb(255,0,0)'
+const aligningDash = [5, 5]
+
+function initAligningGuidelines() {
+  let ctx = canvas.getSelectionContext()
+  let viewportTransform
+  let zoom = 1
+  let verticalLines = []
+  let horizontalLines = []
+
+  canvas.on('mouse:down', function() {
+    viewportTransform = canvas.viewportTransform
+    zoom = canvas.getZoom()
+  })
+
+  canvas.on('object:moving', function(e) {
+    if (!canvas._currentTransform) return
+    let activeObject = e.target
+    let activeObjectCenter = activeObject.getCenterPoint()
+    let activeObjectBoundingRect = activeObject.getBoundingRect()
+    let activeObjectHalfHeight = activeObjectBoundingRect.height / (2 * viewportTransform[3])
+    let activeObjectHalfWidth = activeObjectBoundingRect.width / (2 * viewportTransform[0])
+
+    canvas
+      .getObjects()
+      .filter((object) => object !== activeObject && object.visible)
+      .forEach((object) => {
+        let objectCenter = object.getCenterPoint()
+        let objectBoundingRect = object.getBoundingRect()
+        let objectHalfHeight = objectBoundingRect.height / (2 * viewportTransform[3])
+        let objectHalfWidth = objectBoundingRect.width / (2 * viewportTransform[0])
+
+        // snap by the horizontal center line
+        snapVertical(objectCenter.x, activeObjectCenter.x, objectCenter.x)
+        // snap by the left object edge matching left active edge
+        snapVertical(
+          objectCenter.x - objectHalfWidth,
+          activeObjectCenter.x - activeObjectHalfWidth,
+          objectCenter.x - objectHalfWidth + activeObjectHalfWidth
+        )
+        // snap by the left object edge matching right active edge
+        snapVertical(
+          objectCenter.x - objectHalfWidth,
+          activeObjectCenter.x + activeObjectHalfWidth,
+          objectCenter.x - objectHalfWidth - activeObjectHalfWidth
+        )
+        // snap by the right object edge matching right active edge
+        snapVertical(
+          objectCenter.x + objectHalfWidth,
+          activeObjectCenter.x + activeObjectHalfWidth,
+          objectCenter.x + objectHalfWidth - activeObjectHalfWidth
+        )
+        // snap by the right object edge matching left active edge
+        snapVertical(
+          objectCenter.x + objectHalfWidth,
+          activeObjectCenter.x - activeObjectHalfWidth,
+          objectCenter.x + objectHalfWidth + activeObjectHalfWidth
+        )
+
+        function snapVertical(objEdge, activeEdge, snapCenter) {
+          if (isInRange(objEdge, activeEdge)) {
+            verticalLines.push({
+              x: objEdge,
+              y1: objectCenter.y < activeObjectCenter.y ?
+                objectCenter.y - objectHalfHeight - aligningLineOffset : objectCenter.y + objectHalfHeight + aligningLineOffset,
+              y2: activeObjectCenter.y > objectCenter.y ?
+                activeObjectCenter.y + activeObjectHalfHeight + aligningLineOffset : activeObjectCenter.y - activeObjectHalfHeight - aligningLineOffset,
+            })
+            activeObject.setPositionByOrigin(
+              new fabric.Point(snapCenter, activeObjectCenter.y),
+              'center',
+              'center'
+            )
+          }
+        }
+
+        // snap by the vertical center line
+        snapHorizontal(objectCenter.y, activeObjectCenter.y, objectCenter.y)
+        // snap by the top object edge matching the top active edge
+        snapHorizontal(
+          objectCenter.y - objectHalfHeight,
+          activeObjectCenter.y - activeObjectHalfHeight,
+          objectCenter.y - objectHalfHeight + activeObjectHalfHeight
+        )
+        // snap by the top object edge matching the bottom active edge
+        snapHorizontal(
+          objectCenter.y - objectHalfHeight,
+          activeObjectCenter.y + activeObjectHalfHeight,
+          objectCenter.y - objectHalfHeight - activeObjectHalfHeight
+        )
+        // snap by the bottom object edge matching the bottom active edge
+        snapHorizontal(
+          objectCenter.y + objectHalfHeight,
+          activeObjectCenter.y + activeObjectHalfHeight,
+          objectCenter.y + objectHalfHeight - activeObjectHalfHeight
+        )
+        // snap by the bottom object edge matching the top active edge
+        snapHorizontal(
+          objectCenter.y + objectHalfHeight,
+          activeObjectCenter.y - activeObjectHalfHeight,
+          objectCenter.y + objectHalfHeight + activeObjectHalfHeight
+        )
+
+        function snapHorizontal(objEdge, activeObjEdge, snapCenter) {
+          if (isInRange(objEdge, activeObjEdge)) {
+            horizontalLines.push({
+              y: objEdge,
+              x1: objectCenter.x < activeObjectCenter.x ?
+                objectCenter.x - objectHalfWidth - aligningLineOffset : objectCenter.x + objectHalfWidth + aligningLineOffset,
+              x2: activeObjectCenter.x > objectCenter.x ?
+                activeObjectCenter.x + activeObjectHalfWidth + aligningLineOffset : activeObjectCenter.x - activeObjectHalfWidth - aligningLineOffset,
+            })
+            activeObject.setPositionByOrigin(
+              new fabric.Point(activeObjectCenter.x, snapCenter),
+              'center',
+              'center'
+            )
+          }
+        }
+      })
+  })
+
+  canvas.on('before:render', () => {
+    canvas.clearContext(canvas.contextTop)
+  })
+
+
+  canvas.on('after:render', function() {
+    verticalLines.forEach((line) => drawVerticalLine(line))
+    horizontalLines.forEach((line) => drawHorizontalLine(line))
+
+    verticalLines = []
+    horizontalLines = []
+  })
+
+  canvas.on('mouse:up', function() {
+    canvas.renderAll()
+  })
+
+  function drawVerticalLine(coords) {
+    drawLine(
+      coords.x + 0.5,
+      coords.y1 > coords.y2 ? coords.y2 : coords.y1,
+      coords.x + 0.5,
+      coords.y2 > coords.y1 ? coords.y2 : coords.y1
+    )
+  }
+
+  function drawHorizontalLine(coords) {
+    drawLine(
+      coords.x1 > coords.x2 ? coords.x2 : coords.x1,
+      coords.y + 0.5,
+      coords.x2 > coords.x1 ? coords.x2 : coords.x1,
+      coords.y + 0.5
+    )
+  }
+
+  function drawLine(x1, y1, x2, y2) {
+    ctx.save()
+    ctx.lineWidth = aligningLineWidth
+    ctx.strokeStyle = aligningLineColor
+    ctx.setLineDash(aligningDash)
+    ctx.beginPath()
+    ctx.moveTo(x1 * zoom + viewportTransform[4], y1 * zoom + viewportTransform[5])
+    ctx.lineTo(x2 * zoom + viewportTransform[4], y2 * zoom + viewportTransform[5])
+    ctx.stroke()
+    ctx.restore()
+  }
+  /**
+   * return true if value2 is within value1 +/- aligningLineMargin
+   * @param {number} value1
+   * @param {number} value2
+   * @returns Boolean
+   */
+  function isInRange(value1, value2) {
+    return value2 > value1 - aligningLineMargin && value2 < value1 + aligningLineMargin
+  }
+}
+
+
+fabric.Image.fromURL('https://c.pxhere.com/photos/d8/84/bike_bicycle_basket_street_blue-121797.jpg!d', function(oImg) {
+  oImg.set({
+    top: 10,
+    left: 180,
+    dirty: false,
+    originX: 'center',
+    originY: 'center',
+  });
+  oImg.scaleToWidth(300);
+  canvas.add(oImg).setActiveObject(oImg);
+});
+
+// Function flip X
+function flipX(){
+  canvas.getActiveObject().toggle('flipX');
+  canvas.renderAll();
+}
+
+// Function flip Y
+function flipY(){
+  canvas.getActiveObject().toggle('flipY');
+  canvas.renderAll();
+}
+
+function save() {
+    this.href = canvas.toDataURL({ format: 'png', multiplier: 2});
+    this.download = "can.png";
+  }
+
+
+</script>
+
 </html>
