@@ -1,503 +1,1587 @@
-<style>
-  .toggle{
-  margin: 0 0 10px 0;
-  display: flex;
-  justify-content: space-between;
-  align-items: stretch;
-  flex-flow: row nowrap;
-  align-content: flex-start;
-  width: 600px;
-  height 300px;
-}
-
-  .top_menu{
-    width: 100%;
-  }
-  
-body {
-  font-family: 'PT Root UI';
-}
-canvas {
-  display: block;
-  border: 1px solid white;
-}
-#save, button {
-  border: 1px solid #9F00FF;
-  text-decoration: none;
-  color: #fff;
-  font-size: 16pt;
-  background-color: #9F00FF;
-  padding: 10px;
-  margin-top: 15px;
-  display: inline-block;
-  border-radius: 25px;
-  width: 150px;
-  height: 45px;
-}
-</style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.js" integrity="sha512-hOJ0mwaJavqi11j0XoBN1PtOJ3ykPdP6lp9n29WVVVVZxgx9LO7kMwyyhaznGJ+kbZrDN1jFZMt2G9bxkOHWFQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<div class="toggle">
-  <div class="top_menu"><button id="save" onclick="save()" style="cursor:pointer;">Сохранить</button><button onclick="flipX()" style="cursor:pointer;">Отразить X</button>
-  <button onclick="flipY()" style="cursor:pointer;">Отразить Y</button></div>
-    <button id="save" onclick="save()" style="cursor:pointer;">Сохранить</button>
-</div>
-<canvas id="c" style="width:100%; height:500px; border: 1px solid #333;"></canvas>
-<script>
-  var  path = new fabric.Path('M 170.000 210.000L 217.023 234.721 L 208.042 182.361 L 246.085 145.279 L 193.511 137.639 L 170.000 90.000 L 146.489 137.639 L 93.915 145.279 L 131.958 182.361 L 122.977 234.721 L 170.000 210.000 Z');
-
-var startPoints = [
-    {x: 0, y: 0},
-    {x: 100, y: 0},
-    {x: 100, y: 75},
-    {x: 75, y: 75},
-    {x: 75, y: 100},
-    {x: 50, y: 75},
-    {x: 0, y: 75},
-  ];
-
-
-var canvas = new fabric.Canvas('c',{
-  width: 600,
-  height: 600,
-});
-var ltext = 'Pinterest (Пинтерест) — социальный\nинтернет-сервис, фотохостинг, позволяющий\nпользователям добавлять в режиме онлайн\nизображения, помещать их в тематические';
-var text = new fabric.Text(ltext, { fill: 'white', left: 10, top: 300, charSpacing: 25, width: 150, fontSize: 25, fontFamily: 'PT Root UI', originX: 'center', originY: 'center', objectCaching: false});
-canvas.add(text);
-
-
-  fabric.Object.prototype.transparentCorners = false;
-  fabric.Object.prototype.cornerColor = 'white';
-  fabric.Object.prototype.cornerStrokeColor = '#006eff';
-  fabric.Object.prototype.cornerFill = 'red';
-  fabric.Object.prototype.cornerStyle = 'rect';
-  fabric.Object.prototype.cornerSize = 5;
-  fabric.Object.prototype.borderColor = '#006eff';
-  fabric.Object.prototype.centeredScaling = false;
-  canvas.backgroundColor="red";
-
-var circle = new fabric.Circle({
-  left: 10,
-  top: 10,
-  radius: 70,
-  dirty: false,
-  originX: 'center',
-  originY: 'center',
-});
-
-var gradient = new fabric.Gradient({
-  type: 'linear',
-  gradientUnits: 'pixels', // or 'percentage'
-  coords: { x1: 0, y1: 0, x2: 0, y2: circle.height },
-  colorStops:[
-    { offset: 0, color: 'white' },
-    { offset: 1, color: '#f0700b00'}
-  ]
-});
-
-
-  var polygon = new fabric.Polygon(startPoints, {
-    left: 0,
-    top: 0,
-     rx: 10,
-    ry: 10,
-    selectable: true,
-    objectCaching: false,
-    strokeLineJoin : 'round',
-    stroke: gradient,
-    strokeWidth: 20,
-    dirty: false,
-    originX: 'center',
-  originY: 'center',
-  });
-polygon.set('fill', gradient);
-canvas.add(polygon);
-
-circle.set('fill', gradient);
-canvas.add(circle);
-
-const rect = new fabric.Rect({
-  left: 10,
-  top: 10,
-  width: 100,
-  height: 100,
-  fill: 'blue',
-  rx: 10,
-  ry: 10,
-  objectCaching: false,
-  dirty: false,
-  originX: 'center',
-  originY: 'center',
-})
-
-rect.on('scaling', function() {
- this.set({
-    rx: 20 * (2 / this.scaleX),
-    ry: 20 * (2 / this.scaleY)
-  });
-})
-
-canvas.add(rect).renderAll()
-
-
-path.set({ left: 120, top: 120, strokeLineJoin: 'round', strokeWidth: 20, stroke: 'black' });
-canvas.add(path);
-
-
-var LabeledRect = new fabric.util.createClass(fabric.Rect, {
-  type: "roundedRect",
-  topLeft: [0, 0],
-  topRight: [0, 0],
-  bottomLeft: [0, 0],
-  bottomRight: [0, 0],
-
-  _render: function(ctx) {
-    var w = this.width,
-      h = this.height,
-      x = -this.width / 2,
-      y = -this.height / 2,
-      /* "magic number" for bezier approximations of arcs (http://itc.ktu.lt/itc354/Riskus354.pdf) */
-      k = 1 - 0.5522847498;
-    ctx.beginPath();
-
-    // top left
-    ctx.moveTo(x + this.topLeft[0], y);
-
-    // line to top right
-    ctx.lineTo(x + w - this.topRight[0], y);
-    ctx.bezierCurveTo(x + w - k * this.topRight[0], y, x + w, y + k * this.topRight[1], x + w, y + this.topRight[1]);
-
-    // line to bottom right
-    ctx.lineTo(x + w, y + h - this.bottomRight[1]);
-    ctx.bezierCurveTo(x + w, y + h - k * this.bottomRight[1], x + w - k * this.bottomRight[0], y + h, x + w - this.bottomRight[0], y + h);
-
-    // line to bottom left
-    ctx.lineTo(x + this.bottomLeft[0], y + h);
-    ctx.bezierCurveTo(x + k * this.bottomLeft[0], y + h, x, y + h - k * this.bottomLeft[1], x, y + h - this.bottomLeft[1]);
-
-    // line to top left
-    ctx.lineTo(x, y + this.topLeft[1]);
-    ctx.bezierCurveTo(x, y + k * this.topLeft[1], x + k * this.topLeft[0], y, x + this.topLeft[0], y);
-
-    ctx.closePath();
-
-    this._renderPaintInOrder(ctx);
-  }
-})
-
-
-var labeledRect = new LabeledRect({
-  width: 100,
-  height: 50,
-  left: 100,
-  top: 100,
-  fill: '#faa',
-  topLeft: [10, 10],
-  topRight: [20, 20],
-  bottomLeft: [20, 20],
-  bottomRight: [20, 20],
-  objectCaching: false,
-  dirty: false,
-  originX: 'center',
-  originY: 'center',
-});
-
-labeledRect.on('scaling', function() {
- this.set({
-   topLeft: [40 * (1 / this.scaleX), 40 * (1 / this.scaleY)],
-   topRight: [20 * (1 / this.scaleX), 20 * (1 / this.scaleY)],
-   bottomLeft: [20 * (1 / this.scaleX), 20 * (1 / this.scaleY)],
-   bottomRight: [20 * (1 / this.scaleX), 20 * (1 / this.scaleY)],
-  });
-})
-
-canvas.add(labeledRect).renderAll();
-
-var line9 = new fabric.Line([
-    canvas.width / 2, 0,
-    canvas.width / 2, canvas.height
-], {
-    strokeDashArray: [5, 5],
-    stroke: 'red',
-})
-
-line9.selectable = false;
-line9.evented = false;
-
-var line10 = new fabric.Line([
-    0, canvas.height / 2,
-    canvas.width, canvas.height / 2
-
-], {
-    strokeDashArray: [5, 5],
-    stroke: 'blue',
-    strokeWidth: 1,
-})
-
-line10.selectable = false;
-line10.evented = false;
-
-
-
-var snapZone = 15;
-
-canvas.on('object:moving', function(options) {
-     const objectCenter = options.target.getCenterPoint();
-
-
-  if (objectCenter.x > canvas.width / 2 - snapZone &&
-    objectCenter.x < canvas.width / 2 + snapZone) {
-    // Set the left position of the object to align its center with the horizontal center of the canvas
-    options.target.set({
-      left: canvas.width / 2,
-    }).setCoords();
-
-        canvas.add(line9);
-
-        document.addEventListener("mouseup", () => {
-            canvas.remove(line9);
-        });
-
-    } else {
-        canvas.remove(line9);
-    }
-
-    var objectMiddleVertical = options.target.top + (options.target.height * options.target.scaleY) / 2;
-
-      if (objectCenter.y > canvas.height / 2 - snapZone &&
-    objectCenter.y < canvas.height / 2 + snapZone) {
-    // Set the top position of the object to align its center with the vertical center of the canvas
-    options.target.set({
-      top: canvas.height / 2,
-    }).setCoords();
-
-        canvas.add(line10);
-
-        document.addEventListener("mouseup", () => {
-            canvas.remove(line10);
-        });
-
-    } else {
-        canvas.remove(line10);
-    }
-
-});
-
-initAligningGuidelines()
-/**
- *
- * Draw smart guides
- */
-const aligningLineOffset = 5
-const aligningLineMargin = 4
-const aligningLineWidth = 1
-const aligningLineColor = 'rgb(255,0,0)'
-const aligningDash = [5, 5]
-
-function initAligningGuidelines() {
-  let ctx = canvas.getSelectionContext()
-  let viewportTransform
-  let zoom = 1
-  let verticalLines = []
-  let horizontalLines = []
-
-  canvas.on('mouse:down', function() {
-    viewportTransform = canvas.viewportTransform
-    zoom = canvas.getZoom()
-  })
-
-  canvas.on('object:moving', function(e) {
-    if (!canvas._currentTransform) return
-    let activeObject = e.target
-    let activeObjectCenter = activeObject.getCenterPoint()
-    let activeObjectBoundingRect = activeObject.getBoundingRect()
-    let activeObjectHalfHeight = activeObjectBoundingRect.height / (2 * viewportTransform[3])
-    let activeObjectHalfWidth = activeObjectBoundingRect.width / (2 * viewportTransform[0])
-
-    canvas
-      .getObjects()
-      .filter((object) => object !== activeObject && object.visible)
-      .forEach((object) => {
-        let objectCenter = object.getCenterPoint()
-        let objectBoundingRect = object.getBoundingRect()
-        let objectHalfHeight = objectBoundingRect.height / (2 * viewportTransform[3])
-        let objectHalfWidth = objectBoundingRect.width / (2 * viewportTransform[0])
-
-        // snap by the horizontal center line
-        snapVertical(objectCenter.x, activeObjectCenter.x, objectCenter.x)
-        // snap by the left object edge matching left active edge
-        snapVertical(
-          objectCenter.x - objectHalfWidth,
-          activeObjectCenter.x - activeObjectHalfWidth,
-          objectCenter.x - objectHalfWidth + activeObjectHalfWidth
-        )
-        // snap by the left object edge matching right active edge
-        snapVertical(
-          objectCenter.x - objectHalfWidth,
-          activeObjectCenter.x + activeObjectHalfWidth,
-          objectCenter.x - objectHalfWidth - activeObjectHalfWidth
-        )
-        // snap by the right object edge matching right active edge
-        snapVertical(
-          objectCenter.x + objectHalfWidth,
-          activeObjectCenter.x + activeObjectHalfWidth,
-          objectCenter.x + objectHalfWidth - activeObjectHalfWidth
-        )
-        // snap by the right object edge matching left active edge
-        snapVertical(
-          objectCenter.x + objectHalfWidth,
-          activeObjectCenter.x - activeObjectHalfWidth,
-          objectCenter.x + objectHalfWidth + activeObjectHalfWidth
-        )
-
-        function snapVertical(objEdge, activeEdge, snapCenter) {
-          if (isInRange(objEdge, activeEdge)) {
-            verticalLines.push({
-              x: objEdge,
-              y1: objectCenter.y < activeObjectCenter.y ?
-                objectCenter.y - objectHalfHeight - aligningLineOffset : objectCenter.y + objectHalfHeight + aligningLineOffset,
-              y2: activeObjectCenter.y > objectCenter.y ?
-                activeObjectCenter.y + activeObjectHalfHeight + aligningLineOffset : activeObjectCenter.y - activeObjectHalfHeight - aligningLineOffset,
-            })
-            activeObject.setPositionByOrigin(
-              new fabric.Point(snapCenter, activeObjectCenter.y),
-              'center',
-              'center'
-            )
-          }
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Virtual Tour</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/three@0.158.0/build/three.min.js"></script>
+    <script src="https://unpkg.com/three@0.158.0/examples/jsm/loaders/GLTFLoader.js"></script>
+    <script src="https://unpkg.com/lucide-react@0.263.1/dist/umd/lucide-react.development.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-
-        // snap by the vertical center line
-        snapHorizontal(objectCenter.y, activeObjectCenter.y, objectCenter.y)
-        // snap by the top object edge matching the top active edge
-        snapHorizontal(
-          objectCenter.y - objectHalfHeight,
-          activeObjectCenter.y - activeObjectHalfHeight,
-          objectCenter.y - objectHalfHeight + activeObjectHalfHeight
-        )
-        // snap by the top object edge matching the bottom active edge
-        snapHorizontal(
-          objectCenter.y - objectHalfHeight,
-          activeObjectCenter.y + activeObjectHalfHeight,
-          objectCenter.y - objectHalfHeight - activeObjectHalfHeight
-        )
-        // snap by the bottom object edge matching the bottom active edge
-        snapHorizontal(
-          objectCenter.y + objectHalfHeight,
-          activeObjectCenter.y + activeObjectHalfHeight,
-          objectCenter.y + objectHalfHeight - activeObjectHalfHeight
-        )
-        // snap by the bottom object edge matching the top active edge
-        snapHorizontal(
-          objectCenter.y + objectHalfHeight,
-          activeObjectCenter.y - activeObjectHalfHeight,
-          objectCenter.y + objectHalfHeight + activeObjectHalfHeight
-        )
-
-        function snapHorizontal(objEdge, activeObjEdge, snapCenter) {
-          if (isInRange(objEdge, activeObjEdge)) {
-            horizontalLines.push({
-              y: objEdge,
-              x1: objectCenter.x < activeObjectCenter.x ?
-                objectCenter.x - objectHalfWidth - aligningLineOffset : objectCenter.x + objectHalfWidth + aligningLineOffset,
-              x2: activeObjectCenter.x > objectCenter.x ?
-                activeObjectCenter.x + activeObjectHalfWidth + aligningLineOffset : activeObjectCenter.x - activeObjectHalfWidth - aligningLineOffset,
-            })
-            activeObject.setPositionByOrigin(
-              new fabric.Point(activeObjectCenter.x, snapCenter),
-              'center',
-              'center'
-            )
-          }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            overflow: hidden;
+            background: #000;
         }
-      })
-  })
+        
+        #root {
+            width: 100vw;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+        }
+        
+        /* UI Components Styles */
+        .card {
+            background: white;
+            border-radius: 0.5rem;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        }
+        
+        .card-header {
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .card-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            line-height: 1;
+            letter-spacing: -0.025em;
+        }
+        
+        .card-content {
+            padding: 1.5rem;
+            padding-top: 0;
+        }
+        
+        .button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            border: none;
+            cursor: pointer;
+            gap: 0.5rem;
+        }
+        
+        .button:disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+        
+        .button-default {
+            background: #2563eb;
+            color: white;
+        }
+        
+        .button-default:hover {
+            background: #1d4ed8;
+        }
+        
+        .button-destructive {
+            background: #dc2626;
+            color: white;
+        }
+        
+        .button-destructive:hover {
+            background: #b91c1c;
+        }
+        
+        .button-outline {
+            background: transparent;
+            border: 1px solid #d1d5db;
+            color: inherit;
+        }
+        
+        .button-outline:hover {
+            background: #f9fafb;
+        }
+        
+        .button-ghost {
+            background: transparent;
+            color: inherit;
+            border: none;
+        }
+        
+        .button-ghost:hover {
+            background: #f9fafb;
+        }
+        
+        .button-sm {
+            height: 2.25rem;
+            padding: 0 0.75rem;
+            font-size: 0.875rem;
+        }
+        
+        .button-default-size {
+            height: 2.5rem;
+            padding: 0 1rem;
+        }
+        
+        .space-y-2 > * + * {
+            margin-top: 0.5rem;
+        }
+        
+        .space-y-3 > * + * {
+            margin-top: 0.75rem;
+        }
+        
+        .space-x-2 > * + * {
+            margin-left: 0.5rem;
+        }
+        
+        .flex {
+            display: flex;
+        }
+        
+        .items-center {
+            align-items: center;
+        }
+        
+        .justify-between {
+            justify-content: space-between;
+        }
+        
+        .w-full {
+            width: 100%;
+        }
+        
+        .w-80 {
+            width: 20rem;
+        }
+        
+        .h-8 {
+            height: 2rem;
+        }
+        
+        .h-9 {
+            height: 2.25rem;
+        }
+        
+        .h-10 {
+            height: 2.5rem;
+        }
+        
+        .w-8 {
+            width: 2rem;
+        }
+        
+        .p-0 {
+            padding: 0;
+        }
+        
+        .p-2 {
+            padding: 0.5rem;
+        }
+        
+        .p-4 {
+            padding: 1rem;
+        }
+        
+        .text-sm {
+            font-size: 0.875rem;
+        }
+        
+        .text-xs {
+            font-size: 0.75rem;
+        }
+        
+        .text-lg {
+            font-size: 1.125rem;
+        }
+        
+        .text-xl {
+            font-size: 1.25rem;
+        }
+        
+        .font-medium {
+            font-weight: 500;
+        }
+        
+        .font-semibold {
+            font-weight: 600;
+        }
+        
+        .text-gray-600 {
+            color: #4b5563;
+        }
+        
+        .text-gray-800 {
+            color: #1f2937;
+        }
+        
+        .text-blue-600 {
+            color: #2563eb;
+        }
+        
+        .text-blue-800 {
+            color: #1e40af;
+        }
+        
+        .bg-white {
+            background: white;
+        }
+        
+        .bg-blue-50 {
+            background: #eff6ff;
+        }
+        
+        .bg-blue-100 {
+            background: #dbeafe;
+        }
+        
+        .bg-gray-200 {
+            background: #e5e7eb;
+        }
+        
+        .bg-blue-600 {
+            background: #2563eb;
+        }
+        
+        .bg-black {
+            background: black;
+        }
+        
+        .bg-opacity-50 {
+            opacity: 0.5;
+        }
+        
+        .bg-opacity-90 {
+            opacity: 0.9;
+        }
+        
+        .rounded {
+            border-radius: 0.25rem;
+        }
+        
+        .rounded-full {
+            border-radius: 9999px;
+        }
+        
+        .rounded-lg {
+            border-radius: 0.5rem;
+        }
+        
+        .border {
+            border: 1px solid #e5e7eb;
+        }
+        
+        .border-2 {
+            border-width: 2px;
+        }
+        
+        .border-blue-200 {
+            border-color: #bfdbfe;
+        }
+        
+        .border-blue-500 {
+            border-color: #3b82f6;
+        }
+        
+        .shadow-lg {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        
+        .absolute {
+            position: absolute;
+        }
+        
+        .relative {
+            position: relative;
+        }
+        
+        .inset-0 {
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+        }
+        
+        .top-4 {
+            top: 1rem;
+        }
+        
+        .left-4 {
+            left: 1rem;
+        }
+        
+        .z-10 {
+            z-index: 10;
+        }
+        
+        .z-20 {
+            z-index: 20;
+        }
+        
+        .z-30 {
+            z-index: 30;
+        }
+        
+        .z-40 {
+            z-index: 40;
+        }
+        
+        .pointer-events-none {
+            pointer-events: none;
+        }
+        
+        .pointer-events-auto {
+            pointer-events: auto;
+        }
+        
+        .cursor-pointer {
+            cursor: pointer;
+        }
+        
+        .transform {
+            transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+        }
+        
+        .-translate-x-1-2 {
+            --tw-translate-x: -50%;
+            transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+        }
+        
+        .-translate-y-1-2 {
+            --tw-translate-y: -50%;
+            transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+        }
+        
+        .transition-all {
+            transition: all 0.2s;
+        }
+        
+        .duration-200 {
+            transition-duration: 200ms;
+        }
+        
+        .duration-300 {
+            transition-duration: 300ms;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .block {
+            display: block;
+        }
+        
+        .flex-1 {
+            flex: 1;
+        }
+        
+        .max-w-90vw {
+            max-width: 90vw;
+        }
+        
+        .max-w-sm {
+            max-width: 24rem;
+        }
+        
+        .h-2 {
+            height: 0.5rem;
+        }
+        
+        .h-screen {
+            height: 100vh;
+        }
+        
+        .touch-none {
+            touch-action: none;
+        }
+        
+        .overflow-hidden {
+            overflow: hidden;
+        }
+        
+        .leading-relaxed {
+            line-height: 1.625;
+        }
+        
+        .mt-1 {
+            margin-top: 0.25rem;
+        }
+        
+        .mb-4 {
+            margin-bottom: 1rem;
+        }
+        
+        .hover\\:bg-opacity-100:hover {
+            opacity: 1;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            height: 0.375rem;
+            border-radius: 0.25rem;
+            background: #d1d5db;
+            outline: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 1rem;
+            height: 1rem;
+            border-radius: 50%;
+            background: #2563eb;
+            cursor: pointer;
+        }
+        
+        input[type="range"]::-moz-range-thumb {
+            width: 1rem;
+            height: 1rem;
+            border-radius: 50%;
+            background: #2563eb;
+            cursor: pointer;
+            border: none;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            background: #e5e7eb;
+            border-radius: 9999px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: #2563eb;
+            transition: width 0.2s;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
 
-  canvas.on('before:render', () => {
-    canvas.clearContext(canvas.contextTop)
-  })
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useCallback } = React;
+        const { createRoot } = ReactDOM;
+        
+        // Import Three.js classes
+        const THREE = window.THREE;
+        const GLTFLoader = window.GLTFLoader;
+        
+        // Lucide icons
+        const { 
+            Upload, 
+            RotateCcw, 
+            Play, 
+            Pause, 
+            Eye, 
+            X, 
+            MapPin, 
+            ChevronUp, 
+            ChevronDown 
+        } = window.lucideReact;
 
+        // UI Components
+        const Button = ({ children, className = '', variant = 'default', size = 'default', ...props }) => {
+            const variantClass = {
+                default: 'button-default',
+                destructive: 'button-destructive',
+                outline: 'button-outline',
+                ghost: 'button-ghost'
+            }[variant];
+            
+            const sizeClass = {
+                default: 'button-default-size',
+                sm: 'button-sm'
+            }[size];
+            
+            return (
+                <button 
+                    className={`button ${variantClass} ${sizeClass} ${className}`}
+                    {...props}
+                >
+                    {children}
+                </button>
+            );
+        };
 
-  canvas.on('after:render', function() {
-    verticalLines.forEach((line) => drawVerticalLine(line))
-    horizontalLines.forEach((line) => drawHorizontalLine(line))
+        const Card = ({ children, className = '' }) => (
+            <div className={`card ${className}`}>
+                {children}
+            </div>
+        );
 
-    verticalLines = []
-    horizontalLines = []
-  })
+        const CardHeader = ({ children, className = '' }) => (
+            <div className={`card-header ${className}`}>
+                {children}
+            </div>
+        );
 
-  canvas.on('mouse:up', function() {
-    canvas.renderAll()
-  })
+        const CardTitle = ({ children, className = '' }) => (
+            <h3 className={`card-title ${className}`}>
+                {children}
+            </h3>
+        );
 
-  function drawVerticalLine(coords) {
-    drawLine(
-      coords.x + 0.5,
-      coords.y1 > coords.y2 ? coords.y2 : coords.y1,
-      coords.x + 0.5,
-      coords.y2 > coords.y1 ? coords.y2 : coords.y1
-    )
-  }
+        const CardContent = ({ children, className = '' }) => (
+            <div className={`card-content ${className}`}>
+                {children}
+            </div>
+        );
 
-  function drawHorizontalLine(coords) {
-    drawLine(
-      coords.x1 > coords.x2 ? coords.x2 : coords.x1,
-      coords.y + 0.5,
-      coords.x2 > coords.x1 ? coords.x2 : coords.x1,
-      coords.y + 0.5
-    )
-  }
+        const MobileAdaptedTour = () => {
+            const containerRef = useRef(null);
+            const sceneRef = useRef(null);
+            const rendererRef = useRef(null);
+            const cameraRef = useRef(null);
+            const pathRef = useRef([]);
+            const currentPathPositionRef = useRef(0);
+            const isPlayingRef = useRef(false);
+            const gltfLoaderRef = useRef(new GLTFLoader());
+            const hintsRef = useRef([]);
+            
+            // Mobile-specific controls
+            const [isMobile, setIsMobile] = useState(false);
+            const [gyroscopeSupported, setGyroscopeSupported] = useState(false);
+            const [gyroscopePermission, setGyroscopePermission] = useState('prompt');
+            const gyroscopeDataRef = useRef({ alpha: 0, beta: 0, gamma: 0 });
+            const touchStartRef = useRef({ x: 0, y: 0 });
+            const lastTouchRef = useRef({ x: 0, y: 0 });
+            
+            // Camera controls for both desktop and mobile
+            const cameraRotationRef = useRef({ x: 0, y: 0 });
+            const mouseSensitivity = 0.002;
+            const isPointerLockedRef = useRef(false);
+            
+            // Scrolling speed ref for animation loop access
+            const scrollingSpeedRef = useRef(1.0);
+            
+            // UI state
+            const [isLoaded, setIsLoaded] = useState(false);
+            const [pathProgress, setPathProgress] = useState(0);
+            const [isPlaying, setIsPlaying] = useState(false);
+            const [hasPath, setHasPath] = useState(false);
+            const [loadedModel, setLoadedModel] = useState(null);
+            const [activeHint, setActiveHint] = useState(null);
+            const [showAllHints, setShowAllHints] = useState(false);
+            const [hintVisibilityDistance, setHintVisibilityDistance] = useState(15);
+            const [visibleHints, setVisibleHints] = useState([]);
+            const [uiCollapsed, setUiCollapsed] = useState(false);
+            const [scrollingSpeed, setScrollingSpeed] = useState(1.0);
 
-  function drawLine(x1, y1, x2, y2) {
-    ctx.save()
-    ctx.lineWidth = aligningLineWidth
-    ctx.strokeStyle = aligningLineColor
-    ctx.setLineDash(aligningDash)
-    ctx.beginPath()
-    ctx.moveTo(x1 * zoom + viewportTransform[4], y1 * zoom + viewportTransform[5])
-    ctx.lineTo(x2 * zoom + viewportTransform[4], y2 * zoom + viewportTransform[5])
-    ctx.stroke()
-    ctx.restore()
-  }
-  /**
-   * return true if value2 is within value1 +/- aligningLineMargin
-   * @param {number} value1
-   * @param {number} value2
-   * @returns Boolean
-   */
-  function isInRange(value1, value2) {
-    return value2 > value1 - aligningLineMargin && value2 < value1 + aligningLineMargin
-  }
-}
+            // Detect mobile device
+            useEffect(() => {
+                const checkMobile = () => {
+                    const mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+                                (window.innerWidth <= 768);
+                    setIsMobile(mobile);
+                    
+                    // Check gyroscope support
+                    if (mobile && 'DeviceOrientationEvent' in window) {
+                        setGyroscopeSupported(true);
+                        
+                        // Request permission for iOS 13+
+                        if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+                            setGyroscopePermission('prompt');
+                        } else {
+                            setGyroscopePermission('granted');
+                        }
+                    }
+                };
 
+                checkMobile();
+                window.addEventListener('resize', checkMobile);
+                return () => window.removeEventListener('resize', checkMobile);
+            }, []);
 
-fabric.Image.fromURL('https://c.pxhere.com/photos/d8/84/bike_bicycle_basket_street_blue-121797.jpg!d', function(oImg) {
-  oImg.set({
-    top: 10,
-    left: 180,
-    dirty: false,
-    originX: 'center',
-    originY: 'center',
-  });
-  oImg.scaleToWidth(300);
-  canvas.add(oImg).setActiveObject(oImg);
-});
+            // Request gyroscope permission
+            const requestGyroscopePermission = async () => {
+                if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+                    try {
+                        const permission = await DeviceOrientationEvent.requestPermission();
+                        setGyroscopePermission(permission);
+                        return permission === 'granted';
+                    } catch (error) {
+                        console.error('Error requesting gyroscope permission:', error);
+                        setGyroscopePermission('denied');
+                        return false;
+                    }
+                }
+                return true;
+            };
 
-// Function flip X
-function flipX(){
-  canvas.getActiveObject().toggle('flipX');
-  canvas.renderAll();
-}
+            // Initialize Three.js scene
+            useEffect(() => {
+                if (!containerRef.current) return;
 
-// Function flip Y
-function flipY(){
-  canvas.getActiveObject().toggle('flipY');
-  canvas.renderAll();
-}
+                // Scene setup
+                const scene = new THREE.Scene();
+                scene.background = new THREE.Color(0x87CEEB);
+                sceneRef.current = scene;
 
-function save() {
-    this.href = canvas.toDataURL({ format: 'png', multiplier: 2});
-    this.download = "can.png";
-  }
+                // Camera setup
+                const camera = new THREE.PerspectiveCamera(
+                    75,
+                    containerRef.current.clientWidth / containerRef.current.clientHeight,
+                    0.1,
+                    1000
+                );
+                camera.position.set(0, 5, 10);
+                cameraRef.current = camera;
 
+                // Renderer setup
+                const renderer = new THREE.WebGLRenderer({ antialias: true });
+                renderer.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight);
+                renderer.shadowMap.enabled = true;
+                renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                rendererRef.current = renderer;
+                containerRef.current.appendChild(renderer.domElement);
 
-</script>
+                // Lighting
+                const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+                scene.add(ambientLight);
+
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                directionalLight.position.set(50, 50, 50);
+                directionalLight.castShadow = true;
+                scene.add(directionalLight);
+
+                // Create default scene
+                createDefaultScene(scene);
+
+                // Prevent page scrolling completely
+                const preventScroll = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return false;
+                };
+
+                // Mobile touch controls
+                const handleTouchStart = (event) => {
+                    if (event.touches.length === 1) {
+                        const touch = event.touches[0];
+                        touchStartRef.current = { x: touch.clientX, y: touch.clientY };
+                        lastTouchRef.current = { x: touch.clientX, y: touch.clientY };
+                    }
+                    event.preventDefault();
+                };
+
+                const handleTouchMove = (event) => {
+                    if (event.touches.length === 1 && !isMobile) {
+                        // Desktop touch devices - use for camera rotation
+                        const touch = event.touches[0];
+                        const deltaX = (touch.clientX - lastTouchRef.current.x) * mouseSensitivity;
+                        const deltaY = (touch.clientY - lastTouchRef.current.y) * mouseSensitivity;
+
+                        cameraRotationRef.current.y -= deltaX;
+                        cameraRotationRef.current.x -= deltaY;
+                        cameraRotationRef.current.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, cameraRotationRef.current.x));
+
+                        if (cameraRef.current) {
+                            cameraRef.current.rotation.order = 'YXZ';
+                            cameraRef.current.rotation.y = cameraRotationRef.current.y;
+                            cameraRef.current.rotation.x = cameraRotationRef.current.x;
+                        }
+
+                        lastTouchRef.current = { x: touch.clientX, y: touch.clientY };
+                    }
+                    
+                    if (event.touches.length === 1 && isMobile && pathRef.current.length > 0) {
+                        // Mobile - use vertical touch movement for path navigation
+                        const touch = event.touches[0];
+                        const deltaY = touch.clientY - lastTouchRef.current.y;
+                        
+                        if (Math.abs(deltaY) > 5) { // Minimum movement threshold
+                            const sensitivity = 0.02 * scrollingSpeedRef.current;
+                            const delta = deltaY > 0 ? sensitivity : -sensitivity;
+                            
+                            currentPathPositionRef.current += delta;
+                            
+                            if (currentPathPositionRef.current >= pathRef.current.length) {
+                                currentPathPositionRef.current = 0;
+                            } else if (currentPathPositionRef.current < 0) {
+                                currentPathPositionRef.current = pathRef.current.length - 1;
+                            }
+                            
+                            const progress = (currentPathPositionRef.current / pathRef.current.length) * 100;
+                            setPathProgress(Math.round(progress));
+                            updateCameraPosition();
+                            
+                            lastTouchRef.current = { x: touch.clientX, y: touch.clientY };
+                        }
+                    }
+                    
+                    event.preventDefault();
+                };
+
+                // Desktop mouse controls
+                const handleMouseMove = (event) => {
+                    if (!isMobile && !isPointerLockedRef.current) return;
+
+                    const deltaX = event.movementX * mouseSensitivity;
+                    const deltaY = event.movementY * mouseSensitivity;
+
+                    cameraRotationRef.current.y -= deltaX;
+                    cameraRotationRef.current.x -= deltaY;
+                    cameraRotationRef.current.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, cameraRotationRef.current.x));
+
+                    if (cameraRef.current && !isMobile) {
+                        cameraRef.current.rotation.order = 'YXZ';
+                        cameraRef.current.rotation.y = cameraRotationRef.current.y;
+                        cameraRef.current.rotation.x = cameraRotationRef.current.x;
+                    }
+                };
+
+                const handleClick = () => {
+                    if (!isMobile && !isPointerLockedRef.current) {
+                        containerRef.current.requestPointerLock();
+                    }
+                };
+
+                const handlePointerLockChange = () => {
+                    isPointerLockedRef.current = document.pointerLockElement === containerRef.current;
+                    if (containerRef.current && !isMobile) {
+                        containerRef.current.style.cursor = isPointerLockedRef.current ? 'none' : 'crosshair';
+                    }
+                };
+
+                const handleWheel = (event) => {
+                    if (isMobile) return; // Disable wheel on mobile
+                    
+                    event.preventDefault();
+                    if (pathRef.current.length === 0) return;
+
+                    const delta = (event.deltaY > 0 ? 0.5 : -0.5) * scrollingSpeedRef.current;
+                    currentPathPositionRef.current += delta;
+                    
+                    if (currentPathPositionRef.current >= pathRef.current.length) {
+                        currentPathPositionRef.current = 0;
+                    } else if (currentPathPositionRef.current < 0) {
+                        currentPathPositionRef.current = pathRef.current.length - 1;
+                    }
+                    
+                    const progress = (currentPathPositionRef.current / pathRef.current.length) * 100;
+                    setPathProgress(Math.round(progress));
+                    updateCameraPosition();
+                };
+
+                // Gyroscope handling for mobile
+                const handleDeviceOrientation = (event) => {
+                    if (!isMobile || !gyroscopeSupported || gyroscopePermission !== 'granted') return;
+
+                    // Store gyroscope data
+                    gyroscopeDataRef.current = {
+                        alpha: event.alpha || 0,  // Z axis (compass)
+                        beta: event.beta || 0,    // X axis (front-back tilt)
+                        gamma: event.gamma || 0   // Y axis (left-right tilt)
+                    };
+
+                    // Apply gyroscope rotation to camera
+                    if (cameraRef.current) {
+                        const alpha = THREE.MathUtils.degToRad(gyroscopeDataRef.current.alpha);
+                        const beta = THREE.MathUtils.degToRad(gyroscopeDataRef.current.beta);
+                        const gamma = THREE.MathUtils.degToRad(gyroscopeDataRef.current.gamma);
+
+                        // Convert device orientation to camera rotation
+                        cameraRef.current.rotation.order = 'YXZ';
+                        cameraRef.current.rotation.y = alpha;
+                        cameraRef.current.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, beta - Math.PI / 2));
+                        cameraRef.current.rotation.z = gamma;
+                    }
+                };
+
+                // Event listeners - PREVENT ALL SCROLLING
+                document.addEventListener('wheel', preventScroll, { passive: false });
+                document.addEventListener('touchmove', preventScroll, { passive: false });
+                document.addEventListener('scroll', preventScroll, { passive: false });
+                document.addEventListener('keydown', (e) => {
+                    // Prevent arrow keys, space, page up/down from scrolling
+                    if ([32, 33, 34, 35, 36, 37, 38, 39, 40].indexOf(e.keyCode) > -1) {
+                        e.preventDefault();
+                    }
+                });
+                
+                if (isMobile) {
+                    containerRef.current.addEventListener('touchstart', handleTouchStart, { passive: false });
+                    containerRef.current.addEventListener('touchmove', handleTouchMove, { passive: false });
+                    
+                    if (gyroscopeSupported && gyroscopePermission === 'granted') {
+                        window.addEventListener('deviceorientation', handleDeviceOrientation);
+                    }
+                } else {
+                    document.addEventListener('mousemove', handleMouseMove);
+                    document.addEventListener('pointerlockchange', handlePointerLockChange);
+                    containerRef.current.addEventListener('click', handleClick);
+                    containerRef.current.addEventListener('wheel', handleWheel);
+                    containerRef.current.style.cursor = 'crosshair';
+                }
+
+                const animate = () => {
+                    requestAnimationFrame(animate);
+                    
+                    if (isPlayingRef.current && pathRef.current.length > 0) {
+                        currentPathPositionRef.current += 0.02 * scrollingSpeedRef.current;
+                        
+                        if (currentPathPositionRef.current >= pathRef.current.length) {
+                            currentPathPositionRef.current = 0;
+                        }
+                        
+                        const progress = (currentPathPositionRef.current / pathRef.current.length) * 100;
+                        setPathProgress(Math.round(progress));
+                        updateCameraPosition();
+                    }
+
+                    updateHintVisibility();
+                    renderer.render(scene, camera);
+                };
+                animate();
+
+                const handleResize = () => {
+                    if (!containerRef.current || !camera || !renderer) return;
+                    camera.aspect = containerRef.current.clientWidth / containerRef.current.clientHeight;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight);
+                };
+                
+                window.addEventListener('resize', handleResize);
+                setIsLoaded(true);
+
+                return () => {
+                    window.removeEventListener('resize', handleResize);
+                    document.removeEventListener('wheel', preventScroll);
+                    document.removeEventListener('touchmove', preventScroll);
+                    document.removeEventListener('scroll', preventScroll);
+                    
+                    if (isMobile) {
+                        window.removeEventListener('deviceorientation', handleDeviceOrientation);
+                        if (containerRef.current) {
+                            containerRef.current.removeEventListener('touchstart', handleTouchStart);
+                            containerRef.current.removeEventListener('touchmove', handleTouchMove);
+                        }
+                    } else {
+                        document.removeEventListener('mousemove', handleMouseMove);
+                        document.removeEventListener('pointerlockchange', handlePointerLockChange);
+                        if (containerRef.current) {
+                            containerRef.current.removeEventListener('click', handleClick);
+                            containerRef.current.removeEventListener('wheel', handleWheel);
+                        }
+                    }
+                    
+                    if (containerRef.current && renderer.domElement && containerRef.current.contains(renderer.domElement)) {
+                        containerRef.current.removeChild(renderer.domElement);
+                    }
+                    renderer.dispose();
+                };
+            }, [isMobile, gyroscopeSupported, gyroscopePermission]);
+
+            const createDefaultScene = (scene) => {
+                // Ground
+                const groundGeometry = new THREE.PlaneGeometry(100, 100);
+                const groundMaterial = new THREE.MeshLambertMaterial({ color: 0x90EE90 });
+                const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+                ground.rotation.x = -Math.PI / 2;
+                ground.receiveShadow = true;
+                scene.add(ground);
+
+                // Buildings
+                for (let i = 0; i < 10; i++) {
+                    const height = Math.random() * 10 + 5;
+                    const buildingGeometry = new THREE.BoxGeometry(3, height, 3);
+                    const buildingMaterial = new THREE.MeshLambertMaterial({ 
+                        color: new THREE.Color().setHSL(Math.random(), 0.5, 0.7) 
+                    });
+                    const building = new THREE.Mesh(buildingGeometry, buildingMaterial);
+                    
+                    building.position.set(
+                        (Math.random() - 0.5) * 80,
+                        height / 2,
+                        (Math.random() - 0.5) * 80
+                    );
+                    building.castShadow = true;
+                    scene.add(building);
+                }
+            };
+
+            const updateCameraPosition = useCallback(() => {
+                if (pathRef.current.length === 0 || !cameraRef.current) return;
+
+                const position = currentPathPositionRef.current;
+                const index = Math.floor(position);
+                const nextIndex = (index + 1) % pathRef.current.length;
+                const t = position - index;
+
+                const currentPoint = pathRef.current[index];
+                const nextPoint = pathRef.current[nextIndex];
+
+                const interpolatedPosition = new THREE.Vector3().lerpVectors(currentPoint, nextPoint, t);
+                cameraRef.current.position.copy(interpolatedPosition);
+            }, []);
+
+            const worldToScreen = useCallback((worldPosition) => {
+                if (!cameraRef.current || !rendererRef.current) return null;
+
+                const vector = worldPosition.clone();
+                vector.project(cameraRef.current);
+
+                const x = (vector.x * 0.5 + 0.5) * rendererRef.current.domElement.clientWidth;
+                const y = (vector.y * -0.5 + 0.5) * rendererRef.current.domElement.clientHeight;
+
+                return { x, y, z: vector.z };
+            }, []);
+
+            const updateHintVisibility = useCallback(() => {
+                if (!cameraRef.current || hintsRef.current.length === 0) return;
+
+                const newVisibleHints = [];
+
+                hintsRef.current.forEach((hint, index) => {
+                    const distance = cameraRef.current.position.distanceTo(hint.position);
+                    const isVisible = showAllHints || distance < hintVisibilityDistance;
+                    
+                    if (isVisible) {
+                        const screenPos = worldToScreen(hint.position);
+                        
+                        if (screenPos && screenPos.z < 1) {
+                            const baseSize = isMobile ? 40 : 32;
+                            const maxSize = isMobile ? 80 : 64;
+                            const minSize = isMobile ? 20 : 16;
+                            const scaleFactor = Math.max(0.1, Math.min(1, hintVisibilityDistance / distance));
+                            const size = Math.max(minSize, Math.min(maxSize, baseSize * scaleFactor));
+                            
+                            newVisibleHints.push({
+                                ...hint,
+                                id: index,
+                                screenX: screenPos.x,
+                                screenY: screenPos.y,
+                                size: size,
+                                distance: distance
+                            });
+                        }
+                    }
+                });
+
+                setVisibleHints(newVisibleHints);
+            }, [showAllHints, hintVisibilityDistance, worldToScreen, isMobile]);
+
+            // File loading functions
+            const handleMapLoad = (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const fileExtension = file.name.split('.').pop().toLowerCase();
+
+                if (fileExtension === 'glb' || fileExtension === 'gltf') {
+                    const url = URL.createObjectURL(file);
+                    
+                    gltfLoaderRef.current.load(
+                        url,
+                        (gltf) => {
+                            if (loadedModel && sceneRef.current) {
+                                sceneRef.current.remove(loadedModel);
+                            }
+
+                            const model = gltf.scene;
+                            model.traverse((child) => {
+                                if (child.isMesh) {
+                                    child.castShadow = true;
+                                    child.receiveShadow = true;
+                                }
+                            });
+
+                            const box = new THREE.Box3().setFromObject(model);
+                            const size = box.getSize(new THREE.Vector3());
+                            const maxDimension = Math.max(size.x, size.y, size.z);
+                            const scale = 50 / maxDimension;
+                            model.scale.setScalar(scale);
+
+                            const center = box.getCenter(new THREE.Vector3());
+                            model.position.sub(center.multiplyScalar(scale));
+
+                            if (sceneRef.current) {
+                                sceneRef.current.add(model);
+                                setLoadedModel(model);
+                            }
+                            URL.revokeObjectURL(url);
+                            alert(`GLB model "${file.name}" loaded successfully!`);
+                        },
+                        undefined,
+                        (error) => {
+                            console.error('Error loading GLB file:', error);
+                            alert('Error loading GLB file.');
+                            URL.revokeObjectURL(url);
+                        }
+                    );
+                }
+            };
+
+            const handlePathLoad = (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const pathData = JSON.parse(e.target.result);
+                        if (Array.isArray(pathData) && pathData.length > 0) {
+                            pathRef.current = pathData.map(point => new THREE.Vector3(point.x, point.y, point.z));
+                            currentPathPositionRef.current = 0;
+                            setPathProgress(0);
+                            setHasPath(true);
+                            updateCameraPosition();
+                            alert(`Camera path loaded with ${pathData.length} points!`);
+                        }
+                    } catch (error) {
+                        alert('Error loading path file.');
+                    }
+                };
+                reader.readAsText(file);
+            };
+
+            const handleHintLoad = (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const hintData = JSON.parse(e.target.result);
+                        if (Array.isArray(hintData)) {
+                            loadHints(hintData);
+                            alert(`${hintData.length} hints loaded successfully!`);
+                        }
+                    } catch (error) {
+                        alert('Error loading hint file.');
+                    }
+                };
+                reader.readAsText(file);
+            };
+
+            const loadHints = (hintData) => {
+                hintsRef.current = [];
+
+                hintData.forEach((hint) => {
+                    const position = new THREE.Vector3(hint.position.x, hint.position.y, hint.position.z);
+                    
+                    hintsRef.current.push({
+                        position: position,
+                        title: hint.title,
+                        subtitle: hint.subtitle,
+                        text: hint.text,
+                        icon: hint.icon || 'MapPin'
+                    });
+                });
+            };
+
+            const generateSamplePath = () => {
+                const samplePath = [];
+                for (let i = 0; i <= 100; i++) {
+                    const t = i / 100;
+                    const x = Math.cos(t * Math.PI * 4) * 20;
+                    const z = Math.sin(t * Math.PI * 4) * 20;
+                    const y = 5 + Math.sin(t * Math.PI * 8) * 3;
+                    samplePath.push({ x, y, z });
+                }
+                
+                pathRef.current = samplePath.map(point => new THREE.Vector3(point.x, point.y, point.z));
+                currentPathPositionRef.current = 0;
+                setPathProgress(0);
+                setHasPath(true);
+                updateCameraPosition();
+                alert('Sample spiral path generated!');
+            };
+
+            const generateSampleHints = () => {
+                const sampleHints = [
+                    {
+                        position: { x: 10, y: 8, z: 10 },
+                        title: "Welcome Point",
+                        subtitle: "Start of the tour",
+                        text: "This is the beginning of your 3D interactive tour. " + (isMobile ? "Tilt your device to look around and swipe vertically to navigate." : "Move mouse to look around."),
+                        icon: "MapPin"
+                    },
+                    {
+                        position: { x: -15, y: 6, z: 5 },
+                        title: "Building Complex",
+                        subtitle: "Modern Architecture",
+                        text: "These buildings represent modern architectural design.",
+                        icon: "Eye"
+                    },
+                    {
+                        position: { x: 0, y: 12, z: -20 },
+                        title: "Scenic Viewpoint",
+                        subtitle: "Best view in the area",
+                        text: "From this position, you can see the entire layout.",
+                        icon: "MapPin"
+                    }
+                ];
+
+                loadHints(sampleHints);
+                alert('Sample hints generated!');
+            };
+
+            const togglePlay = () => {
+                if (pathRef.current.length === 0) {
+                    alert('Please load a camera path first!');
+                    return;
+                }
+                
+                const newIsPlaying = !isPlaying;
+                setIsPlaying(newIsPlaying);
+                isPlayingRef.current = newIsPlaying;
+            };
+
+            const resetCamera = () => {
+                if (pathRef.current.length === 0) return;
+                
+                currentPathPositionRef.current = 0;
+                setPathProgress(0);
+                updateCameraPosition();
+                setIsPlaying(false);
+                isPlayingRef.current = false;
+            };
+
+            const handleHintClick = (hint) => {
+                setActiveHint(hint);
+            };
+
+            const getIconComponent = (iconName) => {
+                switch (iconName) {
+                    case 'Eye':
+                        return Eye;
+                    case 'MapPin':
+                        return MapPin;
+                    default:
+                        return MapPin;
+                }
+            };
+
+            const handleGyroscopeEnable = async () => {
+                const granted = await requestGyroscopePermission();
+                if (granted) {
+                    alert('Gyroscope enabled! Tilt your device to look around.');
+                } else {
+                    alert('Gyroscope permission denied. You can still use touch controls.');
+                }
+            };
+
+            // Update scrolling speed ref when UI state changes
+            useEffect(() => {
+                scrollingSpeedRef.current = scrollingSpeed;
+            }, [scrollingSpeed]);
+
+            return React.createElement('div', {
+                className: `w-full h-screen relative overflow-hidden ${isMobile ? 'touch-none' : ''}`,
+                style: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }
+            }, [
+                // 3D Canvas container
+                React.createElement('div', {
+                    key: 'canvas',
+                    ref: containerRef,
+                    className: "w-full h-full"
+                }),
+                
+                // 2D Hint Icons Overlay
+                React.createElement('div', {
+                    key: 'hints-overlay',
+                    className: "absolute inset-0 pointer-events-none z-10"
+                }, visibleHints.map((hint) => {
+                    const IconComponent = getIconComponent(hint.icon);
+                    return React.createElement('div', {
+                        key: hint.id,
+                        className: "absolute pointer-events-auto cursor-pointer transform -translate-x-1-2 -translate-y-1-2",
+                        style: {
+                            left: hint.screenX + 'px',
+                            top: hint.screenY + 'px',
+                            width: hint.size + 'px',
+                            height: hint.size + 'px',
+                        },
+                        onClick: () => handleHintClick(hint)
+                    }, React.createElement('div', {
+                        className: "bg-white bg-opacity-90 rounded-full p-2 shadow-lg border-2 border-blue-500 hover:bg-opacity-100 transition-all duration-200"
+                    }, React.createElement(IconComponent, {
+                        className: "w-full h-full text-blue-600",
+                        strokeWidth: 2
+                    })));
+                })),
+                
+                // Collapsible Control panel
+                React.createElement('div', {
+                    key: 'controls',
+                    className: `absolute top-4 left-4 z-20 transition-all duration-300 ${isMobile ? 'w-80 max-w-90vw' : 'w-80'}`
+                }, React.createElement(Card, { className: "relative" }, [
+                    React.createElement(CardHeader, {
+                        key: 'header',
+                        className: "pb-2"
+                    }, React.createElement('div', {
+                        className: "flex items-center justify-between"
+                    }, [
+                        React.createElement(CardTitle, {
+                            key: 'title',
+                            className: `${isMobile ? 'text-base' : 'text-lg'}`
+                        }, `3D Tour Controls ${isMobile ? '📱' : ''}`),
+                        React.createElement(Button, {
+                            key: 'collapse-btn',
+                            onClick: () => setUiCollapsed(!uiCollapsed),
+                            variant: "ghost",
+                            size: "sm",
+                            className: "h-8 w-8 p-0"
+                        }, uiCollapsed ? React.createElement(ChevronDown, { className: "w-4 h-4" }) : React.createElement(ChevronUp, { className: "w-4 h-4" }))
+                    ])),
+                    
+                    !uiCollapsed && React.createElement(CardContent, {
+                        key: 'content',
+                        className: "space-y-3"
+                    }, [
+                        // Mobile gyroscope permission
+                        isMobile && gyroscopeSupported && gyroscopePermission === 'prompt' && React.createElement('div', {
+                            key: 'gyro-prompt',
+                            className: "space-y-2"
+                        }, React.createElement(Button, {
+                            onClick: handleGyroscopeEnable,
+                            className: "w-full text-sm",
+                            variant: "outline"
+                        }, '🎯 Enable Gyroscope Control')),
+                        
+                        // Mobile status indicator
+                        isMobile && React.createElement('div', {
+                            key: 'mobile-status',
+                            className: "text-xs bg-blue-50 p-2 rounded border border-blue-200"
+                        }, [
+                            React.createElement('p', {
+                                key: 'status1',
+                                className: "font-medium text-blue-800"
+                            }, '📱 Mobile Mode Active'),
+                            React.createElement('p', {
+                                key: 'status2',
+                                className: "text-blue-600"
+                            }, gyroscopePermission === 'granted' ? '✅ Gyroscope enabled' : '⚠️ Gyroscope disabled')
+                        ]),
+                        
+                        // Map loading
+                        React.createElement('div', {
+                            key: 'map-load',
+                            className: "space-y-2"
+                        }, [
+                            React.createElement('label', {
+                                key: 'label1',
+                                className: "block text-sm font-medium"
+                            }, 'Load Map/Environment:'),
+                            React.createElement('div', {
+                                key: 'buttons1',
+                                className: "flex items-center space-x-2"
+                            }, [
+                                React.createElement('input', {
+                                    key: 'input1',
+                                    type: "file",
+                                    accept: ".json,.glb,.gltf",
+                                    onChange: handleMapLoad,
+                                    className: "hidden",
+                                    id: "map-upload"
+                                }),
+                                React.createElement(Button, {
+                                    key: 'btn1',
+                                    onClick: () => document.getElementById('map-upload').click(),
+                                    variant: "outline",
+                                    size: "sm",
+                                    className: "flex items-center space-x-1 text-xs"
+                                }, [
+                                    React.createElement(Upload, { key: 'icon1', className: "w-3 h-3" }),
+                                    React.createElement('span', { key: 'text1' }, 'Load Map')
+                                ])
+                            ])
+                        ]),
+                        
+                        // Path loading
+                        React.createElement('div', {
+                            key: 'path-load',
+                            className: "space-y-2"
+                        }, [
+                            React.createElement('label', {
+                                key: 'label2',
+                                className: "block text-sm font-medium"
+                            }, 'Camera Path:'),
+                            React.createElement('div', {
+                                key: 'buttons2',
+                                className: "flex items-center space-x-2"
+                            }, [
+                                React.createElement('input', {
+                                    key: 'input2',
+                                    type: "file",
+                                    accept: ".json",
+                                    onChange: handlePathLoad,
+                                    className: "hidden",
+                                    id: "path-upload"
+                                }),
+                                React.createElement(Button, {
+                                    key: 'btn2',
+                                    onClick: () => document.getElementById('path-upload').click(),
+                                    variant: "outline",
+                                    size: "sm",
+                                    className: "flex items-center space-x-1 text-xs"
+                                }, [
+                                    React.createElement(Upload, { key: 'icon2', className: "w-3 h-3" }),
+                                    React.createElement('span', { key: 'text2' }, 'Load Path')
+                                ]),
+                                React.createElement(Button, {
+                                    key: 'btn3',
+                                    onClick: generateSamplePath,
+                                    variant: "outline",
+                                    size: "sm",
+                                    className: "text-xs"
+                                }, 'Sample Path')
+                            ])
+                        ]),
+                        
+                        // Hints loading
+                        React.createElement('div', {
+                            key: 'hints-load',
+                            className: "space-y-2"
+                        }, [
+                            React.createElement('label', {
+                                key: 'label3',
+                                className: "block text-sm font-medium"
+                            }, 'Hints:'),
+                            React.createElement('div', {
+                                key: 'buttons3',
+                                className: "flex items-center space-x-2"
+                            }, [
+                                React.createElement('input', {
+                                    key: 'input3',
+                                    type: "file",
+                                    accept: ".json",
+                                    onChange: handleHintLoad,
+                                    className: "hidden",
+                                    id: "hint-upload"
+                                }),
+                                React.createElement(Button, {
+                                    key: 'btn4',
+                                    onClick: () => document.getElementById('hint-upload').click(),
+                                    variant: "outline",
+                                    size: "sm",
+                                    className: "flex items-center space-x-1 text-xs"
+                                }, [
+                                    React.createElement(MapPin, { key: 'icon3', className: "w-3 h-3" }),
+                                    React.createElement('span', { key: 'text3' }, 'Load Hints')
+                                ]),
+                                React.createElement(Button, {
+                                    key: 'btn5',
+                                    onClick: generateSampleHints,
+                                    variant: "outline",
+                                    size: "sm",
+                                    className: "text-xs"
+                                }, 'Sample Hints')
+                            ])
+                        ]),
+                        
+                        // Hint settings
+                        React.createElement('div', {
+                            key: 'hint-settings',
+                            className: "space-y-2"
+                        }, [
+                            React.createElement('label', {
+                                key: 'label4',
+                                className: "block text-sm font-medium"
+                            }, 'Hint Settings:'),
+                            React.createElement('div', {
+                                key: 'settings-content',
+                                className: "space-y-2"
+                            }, [
+                                React.createElement(Button, {
+                                    key: 'toggle-hints',
+                                    onClick: () => setShowAllHints(!showAllHints),
+                                    variant: showAllHints ? "default" : "outline",
+                                    size: "sm",
+                                    className: "w-full text-xs"
+                                }, showAllHints ? 'Hide Distant Hints' : 'Show All Hints'),
+                                React.createElement('div', {
+                                    key: 'distance-slider',
+                                    className: "flex items-center space-x-2"
+                                }, [
+                                    React.createElement('label', {
+                                        key: 'label5',
+                                        className: "text-xs"
+                                    }, 'Distance:'),
+                                    React.createElement('input', {
+                                        key: 'slider',
+                                        type: "range",
+                                        min: "5",
+                                        max: "50",
+                                        value: hintVisibilityDistance,
+                                        onChange: (e) => setHintVisibilityDistance(Number(e.target.value)),
+                                        className: "flex-1"
+                                    }),
+                                    React.createElement('span', {
+                                        key: 'value',
+                                        className: "text-xs w-8"
+                                    }, hintVisibilityDistance)
+                                ])
+                            ])
+                        ]),
+                        
+                        // Path controls
+                        hasPath && React.createElement('div', {
+                            key: 'path-controls',
+                            className: "space-y-2"
+                        }, [
+                            React.createElement('label', {
+                                key: 'progress-label',
+                                className: "block text-sm font-medium"
+                            }, `Path Progress: ${Math.round(pathProgress)}%`),
+                            React.createElement('div', {
+                                key: 'progress-bar',
+                                className: "progress-bar"
+                            }, React.createElement('div', {
+                                key: 'progress-fill',
+                                className: "progress-fill",
+                                style: { width: pathProgress + '%' }
+                            })),
+                            
+                            React.createElement('div', {
+                                key: 'speed-control',
+                                className: "space-y-2"
+                            }, [
+                                React.createElement('label', {
+                                    key: 'speed-label',
+                                    className: "block text-sm font-medium"
+                                }, 'Scrolling Speed:'),
+                                React.createElement('div', {
+                                    key: 'speed-slider-container',
+                                    className: "flex items-center space-x-2"
+                                }, [
+                                    React.createElement('span', {
+                                        key: 'min-speed',
+                                        className: "text-xs w-8"
+                                    }, '0.1x'),
+                                    React.createElement('input', {
+                                        key: 'speed-slider',
+                                        type: "range",
+                                        min: "0.1",
+                                        max: "3.0",
+                                        step: "0.1",
+                                        value: scrollingSpeed,
+                                        onChange: (e) => setScrollingSpeed(Number(e.target.value)),
+                                        className: "flex-1"
+                                    }),
+                                    React.createElement('span', {
+                                        key: 'max-speed',
+                                        className: "text-xs w-8"
+                                    }, '3.0x')
+                                ]),
+                                React.createElement('div', {
+                                    key: 'speed-display',
+                                    className: "text-center"
+                                }, React.createElement('span', {
+                                    className: "text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded"
+                                }, `${scrollingSpeed}x speed`))
+                            ]),
+                            
+                            React.createElement('div', {
+                                key: 'playback-controls',
+                                className: "flex space-x-2"
+                            }, [
+                                React.createElement(Button, {
+                                    key: 'play-btn',
+                                    onClick: togglePlay,
+                                    variant: isPlaying ? "destructive" : "default",
+                                    size: "sm",
+                                    className: "flex items-center space-x-1 text-xs"
+                                }, [
+                                    isPlaying ? React.createElement(Pause, { key: 'pause-icon', className: "w-3 h-3" }) : React.createElement(Play, { key: 'play-icon', className: "w-3 h-3" }),
+                                    React.createElement('span', { key: 'play-text' }, isPlaying ? 'Pause' : 'Play')
+                                ]),
+                                React.createElement(Button, {
+                                    key: 'reset-btn',
+                                    onClick: resetCamera,
+                                    variant: "outline",
+                                    size: "sm",
+                                    className: "flex items-center space-x-1 text-xs"
+                                }, [
+                                    React.createElement(RotateCcw, { key: 'reset-icon', className: "w-3 h-3" }),
+                                    React.createElement('span', { key: 'reset-text' }, 'Reset')
+                                ])
+                            ])
+                        ]),
+                        
+                        // Instructions
+                        React.createElement('div', {
+                            key: 'instructions',
+                            className: "text-xs text-gray-600 space-y-1"
+                        }, isMobile ? [
+                            React.createElement('p', { key: '1' }, React.createElement('strong', {}, '📱 Gyroscope:'), ' Tilt device to look around'),
+                            React.createElement('p', { key: '2' }, React.createElement('strong', {}, '👆 Touch Scroll:'), ' Swipe vertically to navigate path'),
+                            React.createElement('p', { key: '3' }, React.createElement('strong', {}, '💡 Hints:'), ' Tap 2D icons to view information'),
+                            React.createElement('p', { key: '4' }, React.createElement('strong', {}, '🚫 No Page Scroll:'), ' All scrolling disabled'),
+                            React.createElement('p', { key: '5' }, React.createElement('strong', {}, '⚡ Speed Control:'), ' Adjust scrolling speed (0.1x - 3.0x)')
+                        ] : [
+                            React.createElement('p', { key: '1' }, React.createElement('strong', {}, '🖱️ Mouse:'), ' Move to look around (click to lock pointer)'),
+                            React.createElement('p', { key: '2' }, React.createElement('strong', {}, '🎡 Mouse Wheel:'), ' Navigate along path (infinite loop)'),
+                            React.createElement('p', { key: '3' }, React.createElement('strong', {}, '💡 Hints:'), ' Click 2D icons to view information'),
+                            React.createElement('p', { key: '4' }, React.createElement('strong', {}, '🚫 No Page Scroll:'), ' All scrolling disabled'),
+                            React.createElement('p', { key: '5' }, React.createElement('strong', {}, '⚡ Speed Control:'), ' Adjust scrolling speed (0.1x - 3.0x)')
+                        ].concat(React.createElement('p', { key: '6' }, React.createElement('strong', {}, '🗺️ Map Format:'), ' GLB, GLTF files supported')))
+                    ])
+                ])),
+                
+                // Hint display modal
+                activeHint && React.createElement('div', {
+                    key: 'hint-modal',
+                    className: "absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-30 p-4"
+                }, React.createElement(Card, {
+                    className: `${isMobile ? 'w-full max-w-sm' : 'w-96 max-w-90vw'}`
+                }, [
+                    React.createElement(CardHeader, {
+                        key: 'modal-header',
+                        className: "flex flex-row items-center justify-between"
+                    }, [
+                        React.createElement('div', {
+                            key: 'modal-title'
+                        }, [
+                            React.createElement(CardTitle, {
+                                key: 'title',
+                                className: `${isMobile ? 'text-lg' : 'text-xl'}`
+                            }, activeHint.title),
+                            activeHint.subtitle && React.createElement('p', {
+                                key: 'subtitle',
+                                className: "text-sm text-gray-600 mt-1"
+                            }, activeHint.subtitle)
+                        ]),
+                        React.createElement(Button, {
+                            key: 'close-btn',
+                            onClick: () => setActiveHint(null),
+                            variant: "ghost",
+                            size: "sm",
+                            className: "h-8 w-8 p-0"
+                        }, React.createElement(X, { className: "w-4 h-4" }))
+                    ]),
+                    React.createElement(CardContent, {
+                        key: 'modal-content'
+                    }, [
+                        React.createElement('p', {
+                            key: 'hint-text',
+                            className: "text-sm leading-relaxed mb-4"
+                        }, activeHint.text),
+                        React.createElement(Button, {
+                            key: 'close-btn2',
+                            onClick: () => setActiveHint(null),
+                            className: "w-full"
+                        }, 'Close')
+                    ])
+                ])),
+                
+                // Loading overlay
+                !isLoaded && React.createElement('div', {
+                    key: 'loading',
+                    className: "absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 z-40"
+                }, React.createElement('div', {
+                    className: "text-white text-xl"
+                }, 'Loading 3D Scene...'))
+            ]);
+        };
+
+        // Render the app
+        const root = createRoot(document.getElementById('root'));
+        root.render(React.createElement(MobileAdaptedTour));
+    </script>
+</body>
+</html>
