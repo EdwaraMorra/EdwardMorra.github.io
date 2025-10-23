@@ -4,12 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>3D Virtual Tour</title>
-    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Three.js from CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/loaders/GLTFLoader.js"></script>
+    
+    <!-- React from CDN -->
+    <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+    
+    <!-- Babel for JSX -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://unpkg.com/three@0.158.0/build/three.min.js"></script>
-    <script src="https://unpkg.com/three@0.158.0/examples/jsm/loaders/GLTFLoader.js"></script>
-    <script src="https://unpkg.com/lucide-react@0.263.1/dist/umd/lucide-react.development.js"></script>
+    
     <style>
         * {
             margin: 0;
@@ -341,17 +347,15 @@
         }
         
         .transform {
-            transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+            transform: translate(var(--tw-translate-x), var(--tw-translate-y));
         }
         
         .-translate-x-1-2 {
-            --tw-translate-x: -50%;
-            transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+            transform: translateX(-50%);
         }
         
         .-translate-y-1-2 {
-            --tw-translate-y: -50%;
-            transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+            transform: translateY(-50%);
         }
         
         .transition-all {
@@ -414,7 +418,7 @@
             margin-bottom: 1rem;
         }
         
-        .hover\\:bg-opacity-100:hover {
+        .hover-bg-opacity-100:hover {
             opacity: 1;
         }
         
@@ -456,31 +460,155 @@
             background: #2563eb;
             transition: width 0.2s;
         }
+        
+        /* Simple icon styles since we don't have Lucide */
+        .icon {
+            width: 1rem;
+            height: 1rem;
+            stroke: currentColor;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            fill: none;
+        }
+        
+        .icon-upload { /* Simple upload icon */
+            background: linear-gradient(45deg, transparent 45%, currentColor 45%, currentColor 55%, transparent 55%),
+                       linear-gradient(-45deg, transparent 45%, currentColor 45%, currentColor 55%, transparent 55%);
+            border-bottom: 2px solid currentColor;
+        }
+        
+        .icon-rotate-ccw { /* Simple refresh icon */
+            border: 2px solid currentColor;
+            border-right-color: transparent;
+            border-radius: 50%;
+        }
+        
+        .icon-play::before {
+            content: '';
+            display: block;
+            width: 0;
+            height: 0;
+            border-left: 0.5rem solid currentColor;
+            border-top: 0.3rem solid transparent;
+            border-bottom: 0.3rem solid transparent;
+            margin-left: 0.25rem;
+        }
+        
+        .icon-pause::before {
+            content: '';
+            display: block;
+            width: 0.25rem;
+            height: 0.6rem;
+            background: currentColor;
+            margin: 0 0.15rem;
+        }
+        
+        .icon-pause::after {
+            content: '';
+            display: block;
+            width: 0.25rem;
+            height: 0.6rem;
+            background: currentColor;
+            margin: 0 0.15rem;
+        }
+        
+        .icon-eye::before {
+            content: '';
+            display: block;
+            width: 0.8rem;
+            height: 0.5rem;
+            border: 2px solid currentColor;
+            border-radius: 75% 15%;
+            transform: rotate(45deg);
+        }
+        
+        .icon-x::before {
+            content: '×';
+            font-size: 1.2rem;
+            line-height: 1;
+        }
+        
+        .icon-map-pin::before {
+            content: '📍';
+        }
+        
+        .icon-chevron-up::before {
+            content: '↑';
+        }
+        
+        .icon-chevron-down::before {
+            content: '↓';
+        }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useRef, useCallback } = React;
-        const { createRoot } = ReactDOM;
+        // Simple icon components to replace Lucide
+        const Upload = ({ className = '', ...props }) => (
+            React.createElement('span', { 
+                className: `icon icon-upload ${className}`,
+                ...props 
+            })
+        );
         
-        // Import Three.js classes
-        const THREE = window.THREE;
-        const GLTFLoader = window.GLTFLoader;
+        const RotateCcw = ({ className = '', ...props }) => (
+            React.createElement('span', { 
+                className: `icon icon-rotate-ccw ${className}`,
+                ...props 
+            })
+        );
         
-        // Lucide icons
-        const { 
-            Upload, 
-            RotateCcw, 
-            Play, 
-            Pause, 
-            Eye, 
-            X, 
-            MapPin, 
-            ChevronUp, 
-            ChevronDown 
-        } = window.lucideReact;
+        const Play = ({ className = '', ...props }) => (
+            React.createElement('span', { 
+                className: `icon icon-play ${className}`,
+                ...props 
+            })
+        );
+        
+        const Pause = ({ className = '', ...props }) => (
+            React.createElement('span', { 
+                className: `icon icon-pause ${className}`,
+                ...props 
+            })
+        );
+        
+        const Eye = ({ className = '', ...props }) => (
+            React.createElement('span', { 
+                className: `icon icon-eye ${className}`,
+                ...props 
+            })
+        );
+        
+        const X = ({ className = '', ...props }) => (
+            React.createElement('span', { 
+                className: `icon icon-x ${className}`,
+                ...props 
+            })
+        );
+        
+        const MapPin = ({ className = '', ...props }) => (
+            React.createElement('span', { 
+                className: `icon icon-map-pin ${className}`,
+                ...props 
+            })
+        );
+        
+        const ChevronUp = ({ className = '', ...props }) => (
+            React.createElement('span', { 
+                className: `icon icon-chevron-up ${className}`,
+                ...props 
+            })
+        );
+        
+        const ChevronDown = ({ className = '', ...props }) => (
+            React.createElement('span', { 
+                className: `icon icon-chevron-down ${className}`,
+                ...props 
+            })
+        );
 
         // UI Components
         const Button = ({ children, className = '', variant = 'default', size = 'default', ...props }) => {
@@ -496,82 +624,70 @@
                 sm: 'button-sm'
             }[size];
             
-            return (
-                <button 
-                    className={`button ${variantClass} ${sizeClass} ${className}`}
-                    {...props}
-                >
-                    {children}
-                </button>
-            );
+            return React.createElement('button', { 
+                className: `button ${variantClass} ${sizeClass} ${className}`,
+                ...props 
+            }, children);
         };
 
         const Card = ({ children, className = '' }) => (
-            <div className={`card ${className}`}>
-                {children}
-            </div>
+            React.createElement('div', { className: `card ${className}` }, children)
         );
 
         const CardHeader = ({ children, className = '' }) => (
-            <div className={`card-header ${className}`}>
-                {children}
-            </div>
+            React.createElement('div', { className: `card-header ${className}` }, children)
         );
 
         const CardTitle = ({ children, className = '' }) => (
-            <h3 className={`card-title ${className}`}>
-                {children}
-            </h3>
+            React.createElement('h3', { className: `card-title ${className}` }, children)
         );
 
         const CardContent = ({ children, className = '' }) => (
-            <div className={`card-content ${className}`}>
-                {children}
-            </div>
+            React.createElement('div', { className: `card-content ${className}` }, children)
         );
 
         const MobileAdaptedTour = () => {
-            const containerRef = useRef(null);
-            const sceneRef = useRef(null);
-            const rendererRef = useRef(null);
-            const cameraRef = useRef(null);
-            const pathRef = useRef([]);
-            const currentPathPositionRef = useRef(0);
-            const isPlayingRef = useRef(false);
-            const gltfLoaderRef = useRef(new GLTFLoader());
-            const hintsRef = useRef([]);
+            const containerRef = React.useRef(null);
+            const sceneRef = React.useRef(null);
+            const rendererRef = React.useRef(null);
+            const cameraRef = React.useRef(null);
+            const pathRef = React.useRef([]);
+            const currentPathPositionRef = React.useRef(0);
+            const isPlayingRef = React.useRef(false);
+            const gltfLoaderRef = React.useRef(new THREE.GLTFLoader());
+            const hintsRef = React.useRef([]);
             
             // Mobile-specific controls
-            const [isMobile, setIsMobile] = useState(false);
-            const [gyroscopeSupported, setGyroscopeSupported] = useState(false);
-            const [gyroscopePermission, setGyroscopePermission] = useState('prompt');
-            const gyroscopeDataRef = useRef({ alpha: 0, beta: 0, gamma: 0 });
-            const touchStartRef = useRef({ x: 0, y: 0 });
-            const lastTouchRef = useRef({ x: 0, y: 0 });
+            const [isMobile, setIsMobile] = React.useState(false);
+            const [gyroscopeSupported, setGyroscopeSupported] = React.useState(false);
+            const [gyroscopePermission, setGyroscopePermission] = React.useState('prompt');
+            const gyroscopeDataRef = React.useRef({ alpha: 0, beta: 0, gamma: 0 });
+            const touchStartRef = React.useRef({ x: 0, y: 0 });
+            const lastTouchRef = React.useRef({ x: 0, y: 0 });
             
             // Camera controls for both desktop and mobile
-            const cameraRotationRef = useRef({ x: 0, y: 0 });
+            const cameraRotationRef = React.useRef({ x: 0, y: 0 });
             const mouseSensitivity = 0.002;
-            const isPointerLockedRef = useRef(false);
+            const isPointerLockedRef = React.useRef(false);
             
             // Scrolling speed ref for animation loop access
-            const scrollingSpeedRef = useRef(1.0);
+            const scrollingSpeedRef = React.useRef(1.0);
             
             // UI state
-            const [isLoaded, setIsLoaded] = useState(false);
-            const [pathProgress, setPathProgress] = useState(0);
-            const [isPlaying, setIsPlaying] = useState(false);
-            const [hasPath, setHasPath] = useState(false);
-            const [loadedModel, setLoadedModel] = useState(null);
-            const [activeHint, setActiveHint] = useState(null);
-            const [showAllHints, setShowAllHints] = useState(false);
-            const [hintVisibilityDistance, setHintVisibilityDistance] = useState(15);
-            const [visibleHints, setVisibleHints] = useState([]);
-            const [uiCollapsed, setUiCollapsed] = useState(false);
-            const [scrollingSpeed, setScrollingSpeed] = useState(1.0);
+            const [isLoaded, setIsLoaded] = React.useState(false);
+            const [pathProgress, setPathProgress] = React.useState(0);
+            const [isPlaying, setIsPlaying] = React.useState(false);
+            const [hasPath, setHasPath] = React.useState(false);
+            const [loadedModel, setLoadedModel] = React.useState(null);
+            const [activeHint, setActiveHint] = React.useState(null);
+            const [showAllHints, setShowAllHints] = React.useState(false);
+            const [hintVisibilityDistance, setHintVisibilityDistance] = React.useState(15);
+            const [visibleHints, setVisibleHints] = React.useState([]);
+            const [uiCollapsed, setUiCollapsed] = React.useState(false);
+            const [scrollingSpeed, setScrollingSpeed] = React.useState(1.0);
 
             // Detect mobile device
-            useEffect(() => {
+            React.useEffect(() => {
                 const checkMobile = () => {
                     const mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
                                 (window.innerWidth <= 768);
@@ -612,7 +728,7 @@
             };
 
             // Initialize Three.js scene
-            useEffect(() => {
+            React.useEffect(() => {
                 if (!containerRef.current) return;
 
                 // Scene setup
@@ -692,7 +808,7 @@
                         const touch = event.touches[0];
                         const deltaY = touch.clientY - lastTouchRef.current.y;
                         
-                        if (Math.abs(deltaY) > 5) { // Minimum movement threshold
+                        if (Math.abs(deltaY) > 5) {
                             const sensitivity = 0.02 * scrollingSpeedRef.current;
                             const delta = deltaY > 0 ? sensitivity : -sensitivity;
                             
@@ -747,7 +863,7 @@
                 };
 
                 const handleWheel = (event) => {
-                    if (isMobile) return; // Disable wheel on mobile
+                    if (isMobile) return;
                     
                     event.preventDefault();
                     if (pathRef.current.length === 0) return;
@@ -770,20 +886,17 @@
                 const handleDeviceOrientation = (event) => {
                     if (!isMobile || !gyroscopeSupported || gyroscopePermission !== 'granted') return;
 
-                    // Store gyroscope data
                     gyroscopeDataRef.current = {
-                        alpha: event.alpha || 0,  // Z axis (compass)
-                        beta: event.beta || 0,    // X axis (front-back tilt)
-                        gamma: event.gamma || 0   // Y axis (left-right tilt)
+                        alpha: event.alpha || 0,
+                        beta: event.beta || 0,
+                        gamma: event.gamma || 0
                     };
 
-                    // Apply gyroscope rotation to camera
                     if (cameraRef.current) {
                         const alpha = THREE.MathUtils.degToRad(gyroscopeDataRef.current.alpha);
                         const beta = THREE.MathUtils.degToRad(gyroscopeDataRef.current.beta);
                         const gamma = THREE.MathUtils.degToRad(gyroscopeDataRef.current.gamma);
 
-                        // Convert device orientation to camera rotation
                         cameraRef.current.rotation.order = 'YXZ';
                         cameraRef.current.rotation.y = alpha;
                         cameraRef.current.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, beta - Math.PI / 2));
@@ -791,12 +904,11 @@
                     }
                 };
 
-                // Event listeners - PREVENT ALL SCROLLING
+                // Event listeners
                 document.addEventListener('wheel', preventScroll, { passive: false });
                 document.addEventListener('touchmove', preventScroll, { passive: false });
                 document.addEventListener('scroll', preventScroll, { passive: false });
                 document.addEventListener('keydown', (e) => {
-                    // Prevent arrow keys, space, page up/down from scrolling
                     if ([32, 33, 34, 35, 36, 37, 38, 39, 40].indexOf(e.keyCode) > -1) {
                         e.preventDefault();
                     }
@@ -903,7 +1015,7 @@
                 }
             };
 
-            const updateCameraPosition = useCallback(() => {
+            const updateCameraPosition = React.useCallback(() => {
                 if (pathRef.current.length === 0 || !cameraRef.current) return;
 
                 const position = currentPathPositionRef.current;
@@ -918,7 +1030,7 @@
                 cameraRef.current.position.copy(interpolatedPosition);
             }, []);
 
-            const worldToScreen = useCallback((worldPosition) => {
+            const worldToScreen = React.useCallback((worldPosition) => {
                 if (!cameraRef.current || !rendererRef.current) return null;
 
                 const vector = worldPosition.clone();
@@ -930,7 +1042,7 @@
                 return { x, y, z: vector.z };
             }, []);
 
-            const updateHintVisibility = useCallback(() => {
+            const updateHintVisibility = React.useCallback(() => {
                 if (!cameraRef.current || hintsRef.current.length === 0) return;
 
                 const newVisibleHints = [];
@@ -1166,7 +1278,7 @@
             };
 
             // Update scrolling speed ref when UI state changes
-            useEffect(() => {
+            React.useEffect(() => {
                 scrollingSpeedRef.current = scrollingSpeed;
             }, [scrollingSpeed]);
 
@@ -1198,10 +1310,9 @@
                         },
                         onClick: () => handleHintClick(hint)
                     }, React.createElement('div', {
-                        className: "bg-white bg-opacity-90 rounded-full p-2 shadow-lg border-2 border-blue-500 hover:bg-opacity-100 transition-all duration-200"
+                        className: "bg-white bg-opacity-90 rounded-full p-2 shadow-lg border-2 border-blue-500 hover-bg-opacity-100 transition-all duration-200"
                     }, React.createElement(IconComponent, {
-                        className: "w-full h-full text-blue-600",
-                        strokeWidth: 2
+                        className: "w-full h-full text-blue-600"
                     })));
                 })),
                 
@@ -1580,8 +1691,7 @@
         };
 
         // Render the app
-        const root = createRoot(document.getElementById('root'));
-        root.render(React.createElement(MobileAdaptedTour));
+        ReactDOM.render(React.createElement(MobileAdaptedTour), document.getElementById('root'));
     </script>
 </body>
 </html>
