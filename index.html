@@ -805,7 +805,6 @@
                 this.scene.add(directionalLight);
 
                 // GLTF Loader
-                const gltfLoader = new GLTFLoader();
 
                 // Create default scene
                 this.createDefaultScene();
@@ -1091,52 +1090,6 @@
                 });
             }
             
-            // File loading methods
-            handleMapLoad(event) {
-                const file = event.target.files[0];
-                if (!file) return;
-
-                const fileExtension = file.name.split('.').pop().toLowerCase();
-
-                if (fileExtension === 'glb' || fileExtension === 'gltf') {
-                    const url = URL.createObjectURL(file);
-                    
-                    this.gltfLoader.load(
-                        url,
-                        (gltf) => {
-                            // Remove existing model if any
-                            // Note: You'd need to track loaded models in a real implementation
-                            
-                            const model = gltf.scene;
-                            model.traverse((child) => {
-                                if (child.isMesh) {
-                                    child.castShadow = true;
-                                    child.receiveShadow = true;
-                                }
-                            });
-
-                            const box = new THREE.Box3().setFromObject(model);
-                            const size = box.getSize(new THREE.Vector3());
-                            const maxDimension = Math.max(size.x, size.y, size.z);
-                            const scale = 50 / maxDimension;
-                            model.scale.setScalar(scale);
-
-                            const center = box.getCenter(new THREE.Vector3());
-                            model.position.sub(center.multiplyScalar(scale));
-
-                            this.scene.add(model);
-                            URL.revokeObjectURL(url);
-                            alert(`GLB model "${file.name}" loaded successfully!`);
-                        },
-                        undefined,
-                        (error) => {
-                            console.error('Error loading GLB file:', error);
-                            alert('Error loading GLB file.');
-                            URL.revokeObjectURL(url);
-                        }
-                    );
-                }
-            }
             
             handlePathLoad(event) {
                 const file = event.target.files[0];
