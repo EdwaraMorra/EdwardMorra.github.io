@@ -9,13 +9,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/loaders/GLTFLoader.js"></script>
     
-    <!-- React from CDN -->
-    <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
-    <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
-    
-    <!-- Babel for JSX -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    
     <style>
         * {
             margin: 0;
@@ -29,7 +22,7 @@
             background: #000;
         }
         
-        #root {
+        #canvas-container {
             width: 100vw;
             height: 100vh;
             position: fixed;
@@ -461,72 +454,35 @@
             transition: width 0.2s;
         }
         
-        /* Simple icon styles since we don't have Lucide */
+        /* Simple icon styles */
         .icon {
             width: 1rem;
             height: 1rem;
-            stroke: currentColor;
-            stroke-width: 2;
-            stroke-linecap: round;
-            stroke-linejoin: round;
-            fill: none;
+            display: inline-block;
         }
         
-        .icon-upload { /* Simple upload icon */
-            background: linear-gradient(45deg, transparent 45%, currentColor 45%, currentColor 55%, transparent 55%),
-                       linear-gradient(-45deg, transparent 45%, currentColor 45%, currentColor 55%, transparent 55%);
-            border-bottom: 2px solid currentColor;
+        .icon-upload::before {
+            content: '📤';
         }
         
-        .icon-rotate-ccw { /* Simple refresh icon */
-            border: 2px solid currentColor;
-            border-right-color: transparent;
-            border-radius: 50%;
+        .icon-rotate-ccw::before {
+            content: '🔄';
         }
         
         .icon-play::before {
-            content: '';
-            display: block;
-            width: 0;
-            height: 0;
-            border-left: 0.5rem solid currentColor;
-            border-top: 0.3rem solid transparent;
-            border-bottom: 0.3rem solid transparent;
-            margin-left: 0.25rem;
+            content: '▶️';
         }
         
         .icon-pause::before {
-            content: '';
-            display: block;
-            width: 0.25rem;
-            height: 0.6rem;
-            background: currentColor;
-            margin: 0 0.15rem;
-        }
-        
-        .icon-pause::after {
-            content: '';
-            display: block;
-            width: 0.25rem;
-            height: 0.6rem;
-            background: currentColor;
-            margin: 0 0.15rem;
+            content: '⏸️';
         }
         
         .icon-eye::before {
-            content: '';
-            display: block;
-            width: 0.8rem;
-            height: 0.5rem;
-            border: 2px solid currentColor;
-            border-radius: 75% 15%;
-            transform: rotate(45deg);
+            content: '👁️';
         }
         
         .icon-x::before {
-            content: '×';
-            font-size: 1.2rem;
-            line-height: 1;
+            content: '❌';
         }
         
         .icon-map-pin::before {
@@ -543,458 +499,335 @@
     </style>
 </head>
 <body>
-    <div id="root"></div>
-
-    <script type="text/babel">
-        // Simple icon components to replace Lucide
-        const Upload = ({ className = '', ...props }) => (
-            React.createElement('span', { 
-                className: `icon icon-upload ${className}`,
-                ...props 
-            })
-        );
-        
-        const RotateCcw = ({ className = '', ...props }) => (
-            React.createElement('span', { 
-                className: `icon icon-rotate-ccw ${className}`,
-                ...props 
-            })
-        );
-        
-        const Play = ({ className = '', ...props }) => (
-            React.createElement('span', { 
-                className: `icon icon-play ${className}`,
-                ...props 
-            })
-        );
-        
-        const Pause = ({ className = '', ...props }) => (
-            React.createElement('span', { 
-                className: `icon icon-pause ${className}`,
-                ...props 
-            })
-        );
-        
-        const Eye = ({ className = '', ...props }) => (
-            React.createElement('span', { 
-                className: `icon icon-eye ${className}`,
-                ...props 
-            })
-        );
-        
-        const X = ({ className = '', ...props }) => (
-            React.createElement('span', { 
-                className: `icon icon-x ${className}`,
-                ...props 
-            })
-        );
-        
-        const MapPin = ({ className = '', ...props }) => (
-            React.createElement('span', { 
-                className: `icon icon-map-pin ${className}`,
-                ...props 
-            })
-        );
-        
-        const ChevronUp = ({ className = '', ...props }) => (
-            React.createElement('span', { 
-                className: `icon icon-chevron-up ${className}`,
-                ...props 
-            })
-        );
-        
-        const ChevronDown = ({ className = '', ...props }) => (
-            React.createElement('span', { 
-                className: `icon icon-chevron-down ${className}`,
-                ...props 
-            })
-        );
-
-        // UI Components
-        const Button = ({ children, className = '', variant = 'default', size = 'default', ...props }) => {
-            const variantClass = {
-                default: 'button-default',
-                destructive: 'button-destructive',
-                outline: 'button-outline',
-                ghost: 'button-ghost'
-            }[variant];
+    <div id="canvas-container"></div>
+    
+    <!-- 2D Hint Icons Overlay -->
+    <div id="hints-overlay" class="absolute inset-0 pointer-events-none z-10"></div>
+    
+    <!-- Control Panel -->
+    <div id="control-panel" class="absolute top-4 left-4 z-20 transition-all duration-300 w-80 max-w-90vw">
+        <div class="card relative">
+            <div class="card-header pb-2">
+                <div class="flex items-center justify-between">
+                    <h3 class="card-title text-lg" id="panel-title">3D Tour Controls</h3>
+                    <button id="collapse-btn" class="button button-ghost h-8 w-8 p-0">
+                        <span class="icon icon-chevron-up"></span>
+                    </button>
+                </div>
+            </div>
             
-            const sizeClass = {
-                default: 'button-default-size',
-                sm: 'button-sm'
-            }[size];
-            
-            return React.createElement('button', { 
-                className: `button ${variantClass} ${sizeClass} ${className}`,
-                ...props 
-            }, children);
-        };
+            <div id="panel-content" class="card-content space-y-3">
+                <!-- Mobile gyroscope permission -->
+                <div id="gyro-prompt" class="space-y-2 hidden">
+                    <button id="enable-gyro-btn" class="button button-outline w-full text-sm">
+                        🎯 Enable Gyroscope Control
+                    </button>
+                </div>
 
-        const Card = ({ children, className = '' }) => (
-            React.createElement('div', { className: `card ${className}` }, children)
-        );
+                <!-- Mobile status indicator -->
+                <div id="mobile-status" class="text-xs bg-blue-50 p-2 rounded border border-blue-200 hidden">
+                    <p class="font-medium text-blue-800">📱 Mobile Mode Active</p>
+                    <p id="gyro-status" class="text-blue-600">⚠️ Gyroscope disabled</p>
+                </div>
 
-        const CardHeader = ({ children, className = '' }) => (
-            React.createElement('div', { className: `card-header ${className}` }, children)
-        );
+                <!-- Map loading -->
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium">Load Map/Environment:</label>
+                    <div class="flex items-center space-x-2">
+                        <input type="file" accept=".json,.glb,.gltf" id="map-upload" class="hidden">
+                        <button id="load-map-btn" class="button button-outline button-sm flex items-center space-x-1 text-xs">
+                            <span class="icon icon-upload"></span>
+                            <span>Load Map</span>
+                        </button>
+                    </div>
+                </div>
 
-        const CardTitle = ({ children, className = '' }) => (
-            React.createElement('h3', { className: `card-title ${className}` }, children)
-        );
+                <!-- Path loading -->
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium">Camera Path:</label>
+                    <div class="flex items-center space-x-2">
+                        <input type="file" accept=".json" id="path-upload" class="hidden">
+                        <button id="load-path-btn" class="button button-outline button-sm flex items-center space-x-1 text-xs">
+                            <span class="icon icon-upload"></span>
+                            <span>Load Path</span>
+                        </button>
+                        <button id="sample-path-btn" class="button button-outline button-sm text-xs">
+                            Sample Path
+                        </button>
+                    </div>
+                </div>
 
-        const CardContent = ({ children, className = '' }) => (
-            React.createElement('div', { className: `card-content ${className}` }, children)
-        );
+                <!-- Hints loading -->
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium">Hints:</label>
+                    <div class="flex items-center space-x-2">
+                        <input type="file" accept=".json" id="hint-upload" class="hidden">
+                        <button id="load-hints-btn" class="button button-outline button-sm flex items-center space-x-1 text-xs">
+                            <span class="icon icon-map-pin"></span>
+                            <span>Load Hints</span>
+                        </button>
+                        <button id="sample-hints-btn" class="button button-outline button-sm text-xs">
+                            Sample Hints
+                        </button>
+                    </div>
+                </div>
 
-        const MobileAdaptedTour = () => {
-            const containerRef = React.useRef(null);
-            const sceneRef = React.useRef(null);
-            const rendererRef = React.useRef(null);
-            const cameraRef = React.useRef(null);
-            const pathRef = React.useRef([]);
-            const currentPathPositionRef = React.useRef(0);
-            const isPlayingRef = React.useRef(false);
-            const gltfLoaderRef = React.useRef(new THREE.GLTFLoader());
-            const hintsRef = React.useRef([]);
-            
-            // Mobile-specific controls
-            const [isMobile, setIsMobile] = React.useState(false);
-            const [gyroscopeSupported, setGyroscopeSupported] = React.useState(false);
-            const [gyroscopePermission, setGyroscopePermission] = React.useState('prompt');
-            const gyroscopeDataRef = React.useRef({ alpha: 0, beta: 0, gamma: 0 });
-            const touchStartRef = React.useRef({ x: 0, y: 0 });
-            const lastTouchRef = React.useRef({ x: 0, y: 0 });
-            
-            // Camera controls for both desktop and mobile
-            const cameraRotationRef = React.useRef({ x: 0, y: 0 });
-            const mouseSensitivity = 0.002;
-            const isPointerLockedRef = React.useRef(false);
-            
-            // Scrolling speed ref for animation loop access
-            const scrollingSpeedRef = React.useRef(1.0);
-            
-            // UI state
-            const [isLoaded, setIsLoaded] = React.useState(false);
-            const [pathProgress, setPathProgress] = React.useState(0);
-            const [isPlaying, setIsPlaying] = React.useState(false);
-            const [hasPath, setHasPath] = React.useState(false);
-            const [loadedModel, setLoadedModel] = React.useState(null);
-            const [activeHint, setActiveHint] = React.useState(null);
-            const [showAllHints, setShowAllHints] = React.useState(false);
-            const [hintVisibilityDistance, setHintVisibilityDistance] = React.useState(15);
-            const [visibleHints, setVisibleHints] = React.useState([]);
-            const [uiCollapsed, setUiCollapsed] = React.useState(false);
-            const [scrollingSpeed, setScrollingSpeed] = React.useState(1.0);
+                <!-- Hint settings -->
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium">Hint Settings:</label>
+                    <div class="space-y-2">
+                        <button id="toggle-hints-btn" class="button button-outline button-sm w-full text-xs">
+                            Show All Hints
+                        </button>
+                        <div class="flex items-center space-x-2">
+                            <label class="text-xs">Distance:</label>
+                            <input type="range" min="5" max="50" value="15" id="hint-distance-slider" class="flex-1">
+                            <span id="hint-distance-value" class="text-xs w-8">15</span>
+                        </div>
+                    </div>
+                </div>
 
-            // Detect mobile device
-            React.useEffect(() => {
-                const checkMobile = () => {
-                    const mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
-                                (window.innerWidth <= 768);
-                    setIsMobile(mobile);
+                <!-- Path controls -->
+                <div id="path-controls" class="space-y-2 hidden">
+                    <label class="block text-sm font-medium">Path Progress: <span id="progress-percent">0</span>%</label>
+                    <div class="progress-bar">
+                        <div id="progress-fill" class="progress-fill" style="width: 0%"></div>
+                    </div>
                     
-                    // Check gyroscope support
-                    if (mobile && 'DeviceOrientationEvent' in window) {
-                        setGyroscopeSupported(true);
-                        
-                        // Request permission for iOS 13+
-                        if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-                            setGyroscopePermission('prompt');
-                        } else {
-                            setGyroscopePermission('granted');
-                        }
-                    }
-                };
+                    <div class="space-y-2">
+                        <label class="block text-sm font-medium">Scrolling Speed:</label>
+                        <div class="flex items-center space-x-2">
+                            <span class="text-xs w-8">0.1x</span>
+                            <input type="range" min="0.1" max="3.0" step="0.1" value="1.0" id="speed-slider" class="flex-1">
+                            <span class="text-xs w-8">3.0x</span>
+                        </div>
+                        <div class="text-center">
+                            <span id="speed-display" class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">1.0x speed</span>
+                        </div>
+                    </div>
+                    
+                    <div class="flex space-x-2">
+                        <button id="play-btn" class="button button-default button-sm flex items-center space-x-1 text-xs">
+                            <span class="icon icon-play"></span>
+                            <span>Play</span>
+                        </button>
+                        <button id="reset-btn" class="button button-outline button-sm flex items-center space-x-1 text-xs">
+                            <span class="icon icon-rotate-ccw"></span>
+                            <span>Reset</span>
+                        </button>
+                    </div>
+                </div>
 
-                checkMobile();
-                window.addEventListener('resize', checkMobile);
-                return () => window.removeEventListener('resize', checkMobile);
-            }, []);
+                <!-- Instructions -->
+                <div class="text-xs text-gray-600 space-y-1">
+                    <p><strong>🖱️ Mouse:</strong> Move to look around (click to lock pointer)</p>
+                    <p><strong>🎡 Mouse Wheel:</strong> Navigate along path (infinite loop)</p>
+                    <p><strong>💡 Hints:</strong> Click 2D icons to view information</p>
+                    <p><strong>🚫 No Page Scroll:</strong> All scrolling disabled</p>
+                    <p><strong>⚡ Speed Control:</strong> Adjust scrolling speed (0.1x - 3.0x)</p>
+                    <p><strong>🗺️ Map Format:</strong> GLB, GLTF files supported</p>
+                </div>
+            </div>
+        </div>
+    </div>
 
-            // Request gyroscope permission
-            const requestGyroscopePermission = async () => {
-                if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-                    try {
-                        const permission = await DeviceOrientationEvent.requestPermission();
-                        setGyroscopePermission(permission);
-                        return permission === 'granted';
-                    } catch (error) {
-                        console.error('Error requesting gyroscope permission:', error);
-                        setGyroscopePermission('denied');
-                        return false;
+    <!-- Hint Modal -->
+    <div id="hint-modal" class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-30 p-4 hidden">
+        <div class="card w-96 max-w-90vw">
+            <div class="card-header flex flex-row items-center justify-between">
+                <div>
+                    <h3 id="hint-title" class="card-title text-xl"></h3>
+                    <p id="hint-subtitle" class="text-sm text-gray-600 mt-1"></p>
+                </div>
+                <button id="close-hint-btn" class="button button-ghost h-8 w-8 p-0">
+                    <span class="icon icon-x"></span>
+                </button>
+            </div>
+            <div class="card-content">
+                <p id="hint-text" class="text-sm leading-relaxed mb-4"></p>
+                <button id="close-hint-btn2" class="button button-default w-full">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 z-40">
+        <div class="text-white text-xl">Loading 3D Scene...</div>
+    </div>
+
+    <script>
+        // Main application
+        class VirtualTour {
+            constructor() {
+                this.scene = null;
+                this.renderer = null;
+                this.camera = null;
+                this.glftLoader = null;
+                
+                this.path = [];
+                this.currentPathPosition = 0;
+                this.isPlaying = false;
+                this.hints = [];
+                this.visibleHints = [];
+                
+                // Mobile-specific
+                this.isMobile = false;
+                this.gyroscopeSupported = false;
+                this.gyroscopePermission = 'prompt';
+                this.gyroscopeData = { alpha: 0, beta: 0, gamma: 0 };
+                
+                // Camera controls
+                this.cameraRotation = { x: 0, y: 0 };
+                this.mouseSensitivity = 0.002;
+                this.isPointerLocked = false;
+                
+                // Settings
+                this.scrollingSpeed = 1.0;
+                this.showAllHints = false;
+                this.hintVisibilityDistance = 15;
+                
+                // DOM elements
+                this.canvasContainer = document.getElementById('canvas-container');
+                this.hintsOverlay = document.getElementById('hints-overlay');
+                this.controlPanel = document.getElementById('control-panel');
+                
+                this.init();
+            }
+            
+            init() {
+                this.detectMobile();
+                this.setupEventListeners();
+                this.initThreeJS();
+                this.updateUI();
+            }
+            
+            detectMobile() {
+                this.isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+                              (window.innerWidth <= 768);
+                
+                if (this.isMobile && 'DeviceOrientationEvent' in window) {
+                    this.gyroscopeSupported = true;
+                    if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+                        this.gyroscopePermission = 'prompt';
+                    } else {
+                        this.gyroscopePermission = 'granted';
                     }
                 }
-                return true;
-            };
-
-            // Initialize Three.js scene
-            React.useEffect(() => {
-                if (!containerRef.current) return;
-
+                
+                // Update UI for mobile
+                if (this.isMobile) {
+                    document.getElementById('panel-title').textContent += ' 📱';
+                    document.getElementById('gyro-prompt').classList.remove('hidden');
+                    document.getElementById('mobile-status').classList.remove('hidden');
+                    
+                    // Update instructions for mobile
+                    const instructions = document.querySelector('.text-xs.text-gray-600');
+                    instructions.innerHTML = `
+                        <p><strong>📱 Gyroscope:</strong> Tilt device to look around</p>
+                        <p><strong>👆 Touch Scroll:</strong> Swipe vertically to navigate path</p>
+                        <p><strong>💡 Hints:</strong> Tap 2D icons to view information</p>
+                        <p><strong>🚫 No Page Scroll:</strong> All scrolling disabled</p>
+                        <p><strong>⚡ Speed Control:</strong> Adjust scrolling speed (0.1x - 3.0x)</p>
+                        <p><strong>🗺️ Map Format:</strong> GLB, GLTF files supported</p>
+                    `;
+                }
+            }
+            
+            setupEventListeners() {
+                // File uploads
+                document.getElementById('load-map-btn').addEventListener('click', () => {
+                    document.getElementById('map-upload').click();
+                });
+                document.getElementById('load-path-btn').addEventListener('click', () => {
+                    document.getElementById('path-upload').click();
+                });
+                document.getElementById('load-hints-btn').addEventListener('click', () => {
+                    document.getElementById('hint-upload').click();
+                });
+                
+                document.getElementById('map-upload').addEventListener('change', (e) => this.handleMapLoad(e));
+                document.getElementById('path-upload').addEventListener('change', (e) => this.handlePathLoad(e));
+                document.getElementById('hint-upload').addEventListener('change', (e) => this.handleHintLoad(e));
+                
+                // Buttons
+                document.getElementById('sample-path-btn').addEventListener('click', () => this.generateSamplePath());
+                document.getElementById('sample-hints-btn').addEventListener('click', () => this.generateSampleHints());
+                document.getElementById('enable-gyro-btn').addEventListener('click', () => this.requestGyroscopePermission());
+                document.getElementById('toggle-hints-btn').addEventListener('click', () => this.toggleShowAllHints());
+                document.getElementById('play-btn').addEventListener('click', () => this.togglePlay());
+                document.getElementById('reset-btn').addEventListener('click', () => this.resetCamera());
+                document.getElementById('collapse-btn').addEventListener('click', () => this.toggleUICollapse());
+                document.getElementById('close-hint-btn').addEventListener('click', () => this.closeHintModal());
+                document.getElementById('close-hint-btn2').addEventListener('click', () => this.closeHintModal());
+                
+                // Sliders
+                document.getElementById('hint-distance-slider').addEventListener('input', (e) => {
+                    this.hintVisibilityDistance = parseInt(e.target.value);
+                    document.getElementById('hint-distance-value').textContent = this.hintVisibilityDistance;
+                });
+                
+                document.getElementById('speed-slider').addEventListener('input', (e) => {
+                    this.scrollingSpeed = parseFloat(e.target.value);
+                    document.getElementById('speed-display').textContent = this.scrollingSpeed + 'x speed';
+                });
+            }
+            
+            initThreeJS() {
                 // Scene setup
-                const scene = new THREE.Scene();
-                scene.background = new THREE.Color(0x87CEEB);
-                sceneRef.current = scene;
+                this.scene = new THREE.Scene();
+                this.scene.background = new THREE.Color(0x87CEEB);
 
                 // Camera setup
-                const camera = new THREE.PerspectiveCamera(
+                this.camera = new THREE.PerspectiveCamera(
                     75,
-                    containerRef.current.clientWidth / containerRef.current.clientHeight,
+                    this.canvasContainer.clientWidth / this.canvasContainer.clientHeight,
                     0.1,
                     1000
                 );
-                camera.position.set(0, 5, 10);
-                cameraRef.current = camera;
+                this.camera.position.set(0, 5, 10);
 
                 // Renderer setup
-                const renderer = new THREE.WebGLRenderer({ antialias: true });
-                renderer.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight);
-                renderer.shadowMap.enabled = true;
-                renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-                rendererRef.current = renderer;
-                containerRef.current.appendChild(renderer.domElement);
+                this.renderer = new THREE.WebGLRenderer({ antialias: true });
+                this.renderer.setSize(this.canvasContainer.clientWidth, this.canvasContainer.clientHeight);
+                this.renderer.shadowMap.enabled = true;
+                this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                this.canvasContainer.appendChild(this.renderer.domElement);
 
                 // Lighting
                 const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
-                scene.add(ambientLight);
+                this.scene.add(ambientLight);
 
                 const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
                 directionalLight.position.set(50, 50, 50);
                 directionalLight.castShadow = true;
-                scene.add(directionalLight);
+                this.scene.add(directionalLight);
+
+                // GLTF Loader
+                this.gltfLoader = new THREE.GLTFLoader();
 
                 // Create default scene
-                createDefaultScene(scene);
+                this.createDefaultScene();
 
-                // Prevent page scrolling completely
-                const preventScroll = (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    return false;
-                };
+                // Setup controls
+                this.setupControls();
 
-                // Mobile touch controls
-                const handleTouchStart = (event) => {
-                    if (event.touches.length === 1) {
-                        const touch = event.touches[0];
-                        touchStartRef.current = { x: touch.clientX, y: touch.clientY };
-                        lastTouchRef.current = { x: touch.clientX, y: touch.clientY };
-                    }
-                    event.preventDefault();
-                };
+                // Start animation loop
+                this.animate();
 
-                const handleTouchMove = (event) => {
-                    if (event.touches.length === 1 && !isMobile) {
-                        // Desktop touch devices - use for camera rotation
-                        const touch = event.touches[0];
-                        const deltaX = (touch.clientX - lastTouchRef.current.x) * mouseSensitivity;
-                        const deltaY = (touch.clientY - lastTouchRef.current.y) * mouseSensitivity;
-
-                        cameraRotationRef.current.y -= deltaX;
-                        cameraRotationRef.current.x -= deltaY;
-                        cameraRotationRef.current.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, cameraRotationRef.current.x));
-
-                        if (cameraRef.current) {
-                            cameraRef.current.rotation.order = 'YXZ';
-                            cameraRef.current.rotation.y = cameraRotationRef.current.y;
-                            cameraRef.current.rotation.x = cameraRotationRef.current.x;
-                        }
-
-                        lastTouchRef.current = { x: touch.clientX, y: touch.clientY };
-                    }
-                    
-                    if (event.touches.length === 1 && isMobile && pathRef.current.length > 0) {
-                        // Mobile - use vertical touch movement for path navigation
-                        const touch = event.touches[0];
-                        const deltaY = touch.clientY - lastTouchRef.current.y;
-                        
-                        if (Math.abs(deltaY) > 5) {
-                            const sensitivity = 0.02 * scrollingSpeedRef.current;
-                            const delta = deltaY > 0 ? sensitivity : -sensitivity;
-                            
-                            currentPathPositionRef.current += delta;
-                            
-                            if (currentPathPositionRef.current >= pathRef.current.length) {
-                                currentPathPositionRef.current = 0;
-                            } else if (currentPathPositionRef.current < 0) {
-                                currentPathPositionRef.current = pathRef.current.length - 1;
-                            }
-                            
-                            const progress = (currentPathPositionRef.current / pathRef.current.length) * 100;
-                            setPathProgress(Math.round(progress));
-                            updateCameraPosition();
-                            
-                            lastTouchRef.current = { x: touch.clientX, y: touch.clientY };
-                        }
-                    }
-                    
-                    event.preventDefault();
-                };
-
-                // Desktop mouse controls
-                const handleMouseMove = (event) => {
-                    if (!isMobile && !isPointerLockedRef.current) return;
-
-                    const deltaX = event.movementX * mouseSensitivity;
-                    const deltaY = event.movementY * mouseSensitivity;
-
-                    cameraRotationRef.current.y -= deltaX;
-                    cameraRotationRef.current.x -= deltaY;
-                    cameraRotationRef.current.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, cameraRotationRef.current.x));
-
-                    if (cameraRef.current && !isMobile) {
-                        cameraRef.current.rotation.order = 'YXZ';
-                        cameraRef.current.rotation.y = cameraRotationRef.current.y;
-                        cameraRef.current.rotation.x = cameraRotationRef.current.x;
-                    }
-                };
-
-                const handleClick = () => {
-                    if (!isMobile && !isPointerLockedRef.current) {
-                        containerRef.current.requestPointerLock();
-                    }
-                };
-
-                const handlePointerLockChange = () => {
-                    isPointerLockedRef.current = document.pointerLockElement === containerRef.current;
-                    if (containerRef.current && !isMobile) {
-                        containerRef.current.style.cursor = isPointerLockedRef.current ? 'none' : 'crosshair';
-                    }
-                };
-
-                const handleWheel = (event) => {
-                    if (isMobile) return;
-                    
-                    event.preventDefault();
-                    if (pathRef.current.length === 0) return;
-
-                    const delta = (event.deltaY > 0 ? 0.5 : -0.5) * scrollingSpeedRef.current;
-                    currentPathPositionRef.current += delta;
-                    
-                    if (currentPathPositionRef.current >= pathRef.current.length) {
-                        currentPathPositionRef.current = 0;
-                    } else if (currentPathPositionRef.current < 0) {
-                        currentPathPositionRef.current = pathRef.current.length - 1;
-                    }
-                    
-                    const progress = (currentPathPositionRef.current / pathRef.current.length) * 100;
-                    setPathProgress(Math.round(progress));
-                    updateCameraPosition();
-                };
-
-                // Gyroscope handling for mobile
-                const handleDeviceOrientation = (event) => {
-                    if (!isMobile || !gyroscopeSupported || gyroscopePermission !== 'granted') return;
-
-                    gyroscopeDataRef.current = {
-                        alpha: event.alpha || 0,
-                        beta: event.beta || 0,
-                        gamma: event.gamma || 0
-                    };
-
-                    if (cameraRef.current) {
-                        const alpha = THREE.MathUtils.degToRad(gyroscopeDataRef.current.alpha);
-                        const beta = THREE.MathUtils.degToRad(gyroscopeDataRef.current.beta);
-                        const gamma = THREE.MathUtils.degToRad(gyroscopeDataRef.current.gamma);
-
-                        cameraRef.current.rotation.order = 'YXZ';
-                        cameraRef.current.rotation.y = alpha;
-                        cameraRef.current.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, beta - Math.PI / 2));
-                        cameraRef.current.rotation.z = gamma;
-                    }
-                };
-
-                // Event listeners
-                document.addEventListener('wheel', preventScroll, { passive: false });
-                document.addEventListener('touchmove', preventScroll, { passive: false });
-                document.addEventListener('scroll', preventScroll, { passive: false });
-                document.addEventListener('keydown', (e) => {
-                    if ([32, 33, 34, 35, 36, 37, 38, 39, 40].indexOf(e.keyCode) > -1) {
-                        e.preventDefault();
-                    }
-                });
-                
-                if (isMobile) {
-                    containerRef.current.addEventListener('touchstart', handleTouchStart, { passive: false });
-                    containerRef.current.addEventListener('touchmove', handleTouchMove, { passive: false });
-                    
-                    if (gyroscopeSupported && gyroscopePermission === 'granted') {
-                        window.addEventListener('deviceorientation', handleDeviceOrientation);
-                    }
-                } else {
-                    document.addEventListener('mousemove', handleMouseMove);
-                    document.addEventListener('pointerlockchange', handlePointerLockChange);
-                    containerRef.current.addEventListener('click', handleClick);
-                    containerRef.current.addEventListener('wheel', handleWheel);
-                    containerRef.current.style.cursor = 'crosshair';
-                }
-
-                const animate = () => {
-                    requestAnimationFrame(animate);
-                    
-                    if (isPlayingRef.current && pathRef.current.length > 0) {
-                        currentPathPositionRef.current += 0.02 * scrollingSpeedRef.current;
-                        
-                        if (currentPathPositionRef.current >= pathRef.current.length) {
-                            currentPathPositionRef.current = 0;
-                        }
-                        
-                        const progress = (currentPathPositionRef.current / pathRef.current.length) * 100;
-                        setPathProgress(Math.round(progress));
-                        updateCameraPosition();
-                    }
-
-                    updateHintVisibility();
-                    renderer.render(scene, camera);
-                };
-                animate();
-
-                const handleResize = () => {
-                    if (!containerRef.current || !camera || !renderer) return;
-                    camera.aspect = containerRef.current.clientWidth / containerRef.current.clientHeight;
-                    camera.updateProjectionMatrix();
-                    renderer.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight);
-                };
-                
-                window.addEventListener('resize', handleResize);
-                setIsLoaded(true);
-
-                return () => {
-                    window.removeEventListener('resize', handleResize);
-                    document.removeEventListener('wheel', preventScroll);
-                    document.removeEventListener('touchmove', preventScroll);
-                    document.removeEventListener('scroll', preventScroll);
-                    
-                    if (isMobile) {
-                        window.removeEventListener('deviceorientation', handleDeviceOrientation);
-                        if (containerRef.current) {
-                            containerRef.current.removeEventListener('touchstart', handleTouchStart);
-                            containerRef.current.removeEventListener('touchmove', handleTouchMove);
-                        }
-                    } else {
-                        document.removeEventListener('mousemove', handleMouseMove);
-                        document.removeEventListener('pointerlockchange', handlePointerLockChange);
-                        if (containerRef.current) {
-                            containerRef.current.removeEventListener('click', handleClick);
-                            containerRef.current.removeEventListener('wheel', handleWheel);
-                        }
-                    }
-                    
-                    if (containerRef.current && renderer.domElement && containerRef.current.contains(renderer.domElement)) {
-                        containerRef.current.removeChild(renderer.domElement);
-                    }
-                    renderer.dispose();
-                };
-            }, [isMobile, gyroscopeSupported, gyroscopePermission]);
-
-            const createDefaultScene = (scene) => {
+                // Hide loading overlay
+                document.getElementById('loading-overlay').classList.add('hidden');
+            }
+            
+            createDefaultScene() {
                 // Ground
                 const groundGeometry = new THREE.PlaneGeometry(100, 100);
                 const groundMaterial = new THREE.MeshLambertMaterial({ color: 0x90EE90 });
                 const ground = new THREE.Mesh(groundGeometry, groundMaterial);
                 ground.rotation.x = -Math.PI / 2;
                 ground.receiveShadow = true;
-                scene.add(ground);
+                this.scene.add(ground);
 
                 // Buildings
                 for (let i = 0; i < 10; i++) {
@@ -1011,73 +844,255 @@
                         (Math.random() - 0.5) * 80
                     );
                     building.castShadow = true;
-                    scene.add(building);
+                    this.scene.add(building);
                 }
-            };
+            }
+            
+            setupControls() {
+                const preventScroll = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return false;
+                };
 
-            const updateCameraPosition = React.useCallback(() => {
-                if (pathRef.current.length === 0 || !cameraRef.current) return;
+                // Touch controls for mobile
+                let touchStart = { x: 0, y: 0 };
+                let lastTouch = { x: 0, y: 0 };
 
-                const position = currentPathPositionRef.current;
+                const handleTouchStart = (event) => {
+                    if (event.touches.length === 1) {
+                        const touch = event.touches[0];
+                        touchStart = { x: touch.clientX, y: touch.clientY };
+                        lastTouch = { x: touch.clientX, y: touch.clientY };
+                    }
+                    event.preventDefault();
+                };
+
+                const handleTouchMove = (event) => {
+                    if (event.touches.length === 1 && this.isMobile && this.path.length > 0) {
+                        const touch = event.touches[0];
+                        const deltaY = touch.clientY - lastTouch.y;
+                        
+                        if (Math.abs(deltaY) > 5) {
+                            const sensitivity = 0.02 * this.scrollingSpeed;
+                            const delta = deltaY > 0 ? sensitivity : -sensitivity;
+                            
+                            this.currentPathPosition += delta;
+                            
+                            if (this.currentPathPosition >= this.path.length) {
+                                this.currentPathPosition = 0;
+                            } else if (this.currentPathPosition < 0) {
+                                this.currentPathPosition = this.path.length - 1;
+                            }
+                            
+                            this.updatePathProgress();
+                            this.updateCameraPosition();
+                            
+                            lastTouch = { x: touch.clientX, y: touch.clientY };
+                        }
+                    }
+                    event.preventDefault();
+                };
+
+                // Mouse controls for desktop
+                const handleMouseMove = (event) => {
+                    if (!this.isMobile && !this.isPointerLocked) return;
+
+                    const deltaX = event.movementX * this.mouseSensitivity;
+                    const deltaY = event.movementY * this.mouseSensitivity;
+
+                    this.cameraRotation.y -= deltaX;
+                    this.cameraRotation.x -= deltaY;
+                    this.cameraRotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, this.cameraRotation.x));
+
+                    if (this.camera && !this.isMobile) {
+                        this.camera.rotation.order = 'YXZ';
+                        this.camera.rotation.y = this.cameraRotation.y;
+                        this.camera.rotation.x = this.cameraRotation.x;
+                    }
+                };
+
+                const handleClick = () => {
+                    if (!this.isMobile && !this.isPointerLocked) {
+                        this.canvasContainer.requestPointerLock();
+                    }
+                };
+
+                const handlePointerLockChange = () => {
+                    this.isPointerLocked = document.pointerLockElement === this.canvasContainer;
+                    if (this.canvasContainer && !this.isMobile) {
+                        this.canvasContainer.style.cursor = this.isPointerLocked ? 'none' : 'crosshair';
+                    }
+                };
+
+                const handleWheel = (event) => {
+                    if (this.isMobile) return;
+                    
+                    event.preventDefault();
+                    if (this.path.length === 0) return;
+
+                    const delta = (event.deltaY > 0 ? 0.5 : -0.5) * this.scrollingSpeed;
+                    this.currentPathPosition += delta;
+                    
+                    if (this.currentPathPosition >= this.path.length) {
+                        this.currentPathPosition = 0;
+                    } else if (this.currentPathPosition < 0) {
+                        this.currentPathPosition = this.path.length - 1;
+                    }
+                    
+                    this.updatePathProgress();
+                    this.updateCameraPosition();
+                };
+
+                // Gyroscope handling
+                const handleDeviceOrientation = (event) => {
+                    if (!this.isMobile || !this.gyroscopeSupported || this.gyroscopePermission !== 'granted') return;
+
+                    this.gyroscopeData = {
+                        alpha: event.alpha || 0,
+                        beta: event.beta || 0,
+                        gamma: event.gamma || 0
+                    };
+
+                    if (this.camera) {
+                        const alpha = THREE.MathUtils.degToRad(this.gyroscopeData.alpha);
+                        const beta = THREE.MathUtils.degToRad(this.gyroscopeData.beta);
+                        const gamma = THREE.MathUtils.degToRad(this.gyroscopeData.gamma);
+
+                        this.camera.rotation.order = 'YXZ';
+                        this.camera.rotation.y = alpha;
+                        this.camera.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, beta - Math.PI / 2));
+                        this.camera.rotation.z = gamma;
+                    }
+                };
+
+                // Event listeners
+                document.addEventListener('wheel', preventScroll, { passive: false });
+                document.addEventListener('touchmove', preventScroll, { passive: false });
+                document.addEventListener('scroll', preventScroll, { passive: false });
+                document.addEventListener('keydown', (e) => {
+                    if ([32, 33, 34, 35, 36, 37, 38, 39, 40].indexOf(e.keyCode) > -1) {
+                        e.preventDefault();
+                    }
+                });
+                
+                if (this.isMobile) {
+                    this.canvasContainer.addEventListener('touchstart', handleTouchStart, { passive: false });
+                    this.canvasContainer.addEventListener('touchmove', handleTouchMove, { passive: false });
+                    
+                    if (this.gyroscopeSupported && this.gyroscopePermission === 'granted') {
+                        window.addEventListener('deviceorientation', handleDeviceOrientation);
+                    }
+                } else {
+                    document.addEventListener('mousemove', handleMouseMove);
+                    document.addEventListener('pointerlockchange', handlePointerLockChange);
+                    this.canvasContainer.addEventListener('click', handleClick);
+                    this.canvasContainer.addEventListener('wheel', handleWheel);
+                    this.canvasContainer.style.cursor = 'crosshair';
+                }
+
+                // Window resize
+                window.addEventListener('resize', () => {
+                    if (!this.canvasContainer || !this.camera || !this.renderer) return;
+                    this.camera.aspect = this.canvasContainer.clientWidth / this.canvasContainer.clientHeight;
+                    this.camera.updateProjectionMatrix();
+                    this.renderer.setSize(this.canvasContainer.clientWidth, this.canvasContainer.clientHeight);
+                });
+            }
+            
+            animate() {
+                requestAnimationFrame(() => this.animate());
+                
+                if (this.isPlaying && this.path.length > 0) {
+                    this.currentPathPosition += 0.02 * this.scrollingSpeed;
+                    
+                    if (this.currentPathPosition >= this.path.length) {
+                        this.currentPathPosition = 0;
+                    }
+                    
+                    this.updatePathProgress();
+                    this.updateCameraPosition();
+                }
+
+                this.updateHintVisibility();
+                this.renderer.render(this.scene, this.camera);
+            }
+            
+            updateCameraPosition() {
+                if (this.path.length === 0 || !this.camera) return;
+
+                const position = this.currentPathPosition;
                 const index = Math.floor(position);
-                const nextIndex = (index + 1) % pathRef.current.length;
+                const nextIndex = (index + 1) % this.path.length;
                 const t = position - index;
 
-                const currentPoint = pathRef.current[index];
-                const nextPoint = pathRef.current[nextIndex];
+                const currentPoint = this.path[index];
+                const nextPoint = this.path[nextIndex];
 
                 const interpolatedPosition = new THREE.Vector3().lerpVectors(currentPoint, nextPoint, t);
-                cameraRef.current.position.copy(interpolatedPosition);
-            }, []);
-
-            const worldToScreen = React.useCallback((worldPosition) => {
-                if (!cameraRef.current || !rendererRef.current) return null;
+                this.camera.position.copy(interpolatedPosition);
+            }
+            
+            updatePathProgress() {
+                const progress = (this.currentPathPosition / this.path.length) * 100;
+                document.getElementById('progress-percent').textContent = Math.round(progress);
+                document.getElementById('progress-fill').style.width = progress + '%';
+            }
+            
+            worldToScreen(worldPosition) {
+                if (!this.camera || !this.renderer) return null;
 
                 const vector = worldPosition.clone();
-                vector.project(cameraRef.current);
+                vector.project(this.camera);
 
-                const x = (vector.x * 0.5 + 0.5) * rendererRef.current.domElement.clientWidth;
-                const y = (vector.y * -0.5 + 0.5) * rendererRef.current.domElement.clientHeight;
+                const x = (vector.x * 0.5 + 0.5) * this.renderer.domElement.clientWidth;
+                const y = (vector.y * -0.5 + 0.5) * this.renderer.domElement.clientHeight;
 
                 return { x, y, z: vector.z };
-            }, []);
-
-            const updateHintVisibility = React.useCallback(() => {
-                if (!cameraRef.current || hintsRef.current.length === 0) return;
+            }
+            
+            updateHintVisibility() {
+                if (!this.camera || this.hints.length === 0) return;
 
                 const newVisibleHints = [];
+                this.hintsOverlay.innerHTML = '';
 
-                hintsRef.current.forEach((hint, index) => {
-                    const distance = cameraRef.current.position.distanceTo(hint.position);
-                    const isVisible = showAllHints || distance < hintVisibilityDistance;
+                this.hints.forEach((hint, index) => {
+                    const distance = this.camera.position.distanceTo(hint.position);
+                    const isVisible = this.showAllHints || distance < this.hintVisibilityDistance;
                     
                     if (isVisible) {
-                        const screenPos = worldToScreen(hint.position);
+                        const screenPos = this.worldToScreen(hint.position);
                         
                         if (screenPos && screenPos.z < 1) {
-                            const baseSize = isMobile ? 40 : 32;
-                            const maxSize = isMobile ? 80 : 64;
-                            const minSize = isMobile ? 20 : 16;
-                            const scaleFactor = Math.max(0.1, Math.min(1, hintVisibilityDistance / distance));
+                            const baseSize = this.isMobile ? 40 : 32;
+                            const maxSize = this.isMobile ? 80 : 64;
+                            const minSize = this.isMobile ? 20 : 16;
+                            const scaleFactor = Math.max(0.1, Math.min(1, this.hintVisibilityDistance / distance));
                             const size = Math.max(minSize, Math.min(maxSize, baseSize * scaleFactor));
                             
-                            newVisibleHints.push({
-                                ...hint,
-                                id: index,
-                                screenX: screenPos.x,
-                                screenY: screenPos.y,
-                                size: size,
-                                distance: distance
-                            });
+                            const hintElement = document.createElement('div');
+                            hintElement.className = 'absolute pointer-events-auto cursor-pointer transform -translate-x-1-2 -translate-y-1-2';
+                            hintElement.style.left = screenPos.x + 'px';
+                            hintElement.style.top = screenPos.y + 'px';
+                            hintElement.style.width = size + 'px';
+                            hintElement.style.height = size + 'px';
+                            hintElement.onclick = () => this.showHintModal(hint);
+                            
+                            hintElement.innerHTML = `
+                                <div class="bg-white bg-opacity-90 rounded-full p-2 shadow-lg border-2 border-blue-500 hover-bg-opacity-100 transition-all duration-200">
+                                    <span class="icon icon-${hint.icon} text-blue-600" style="display: block; width: 100%; height: 100%;"></span>
+                                </div>
+                            `;
+                            
+                            this.hintsOverlay.appendChild(hintElement);
                         }
                     }
                 });
-
-                setVisibleHints(newVisibleHints);
-            }, [showAllHints, hintVisibilityDistance, worldToScreen, isMobile]);
-
-            // File loading functions
-            const handleMapLoad = (event) => {
+            }
+            
+            // File loading methods
+            handleMapLoad(event) {
                 const file = event.target.files[0];
                 if (!file) return;
 
@@ -1086,13 +1101,12 @@
                 if (fileExtension === 'glb' || fileExtension === 'gltf') {
                     const url = URL.createObjectURL(file);
                     
-                    gltfLoaderRef.current.load(
+                    this.gltfLoader.load(
                         url,
                         (gltf) => {
-                            if (loadedModel && sceneRef.current) {
-                                sceneRef.current.remove(loadedModel);
-                            }
-
+                            // Remove existing model if any
+                            // Note: You'd need to track loaded models in a real implementation
+                            
                             const model = gltf.scene;
                             model.traverse((child) => {
                                 if (child.isMesh) {
@@ -1110,10 +1124,7 @@
                             const center = box.getCenter(new THREE.Vector3());
                             model.position.sub(center.multiplyScalar(scale));
 
-                            if (sceneRef.current) {
-                                sceneRef.current.add(model);
-                                setLoadedModel(model);
-                            }
+                            this.scene.add(model);
                             URL.revokeObjectURL(url);
                             alert(`GLB model "${file.name}" loaded successfully!`);
                         },
@@ -1125,9 +1136,9 @@
                         }
                     );
                 }
-            };
-
-            const handlePathLoad = (event) => {
+            }
+            
+            handlePathLoad(event) {
                 const file = event.target.files[0];
                 if (!file) return;
 
@@ -1136,11 +1147,11 @@
                     try {
                         const pathData = JSON.parse(e.target.result);
                         if (Array.isArray(pathData) && pathData.length > 0) {
-                            pathRef.current = pathData.map(point => new THREE.Vector3(point.x, point.y, point.z));
-                            currentPathPositionRef.current = 0;
-                            setPathProgress(0);
-                            setHasPath(true);
-                            updateCameraPosition();
+                            this.path = pathData.map(point => new THREE.Vector3(point.x, point.y, point.z));
+                            this.currentPathPosition = 0;
+                            this.updatePathProgress();
+                            this.updateUI();
+                            this.updateCameraPosition();
                             alert(`Camera path loaded with ${pathData.length} points!`);
                         }
                     } catch (error) {
@@ -1148,9 +1159,9 @@
                     }
                 };
                 reader.readAsText(file);
-            };
-
-            const handleHintLoad = (event) => {
+            }
+            
+            handleHintLoad(event) {
                 const file = event.target.files[0];
                 if (!file) return;
 
@@ -1159,7 +1170,7 @@
                     try {
                         const hintData = JSON.parse(e.target.result);
                         if (Array.isArray(hintData)) {
-                            loadHints(hintData);
+                            this.loadHints(hintData);
                             alert(`${hintData.length} hints loaded successfully!`);
                         }
                     } catch (error) {
@@ -1167,25 +1178,23 @@
                     }
                 };
                 reader.readAsText(file);
-            };
-
-            const loadHints = (hintData) => {
-                hintsRef.current = [];
-
+            }
+            
+            loadHints(hintData) {
+                this.hints = [];
                 hintData.forEach((hint) => {
                     const position = new THREE.Vector3(hint.position.x, hint.position.y, hint.position.z);
-                    
-                    hintsRef.current.push({
+                    this.hints.push({
                         position: position,
                         title: hint.title,
                         subtitle: hint.subtitle,
                         text: hint.text,
-                        icon: hint.icon || 'MapPin'
+                        icon: hint.icon || 'map-pin'
                     });
                 });
-            };
-
-            const generateSamplePath = () => {
+            }
+            
+            generateSamplePath() {
                 const samplePath = [];
                 for (let i = 0; i <= 100; i++) {
                     const t = i / 100;
@@ -1195,503 +1204,133 @@
                     samplePath.push({ x, y, z });
                 }
                 
-                pathRef.current = samplePath.map(point => new THREE.Vector3(point.x, point.y, point.z));
-                currentPathPositionRef.current = 0;
-                setPathProgress(0);
-                setHasPath(true);
-                updateCameraPosition();
+                this.path = samplePath.map(point => new THREE.Vector3(point.x, point.y, point.z));
+                this.currentPathPosition = 0;
+                this.updatePathProgress();
+                this.updateUI();
+                this.updateCameraPosition();
                 alert('Sample spiral path generated!');
-            };
-
-            const generateSampleHints = () => {
+            }
+            
+            generateSampleHints() {
                 const sampleHints = [
                     {
                         position: { x: 10, y: 8, z: 10 },
                         title: "Welcome Point",
                         subtitle: "Start of the tour",
-                        text: "This is the beginning of your 3D interactive tour. " + (isMobile ? "Tilt your device to look around and swipe vertically to navigate." : "Move mouse to look around."),
-                        icon: "MapPin"
+                        text: "This is the beginning of your 3D interactive tour. " + (this.isMobile ? "Tilt your device to look around and swipe vertically to navigate." : "Move mouse to look around."),
+                        icon: "map-pin"
                     },
                     {
                         position: { x: -15, y: 6, z: 5 },
                         title: "Building Complex",
                         subtitle: "Modern Architecture",
                         text: "These buildings represent modern architectural design.",
-                        icon: "Eye"
+                        icon: "eye"
                     },
                     {
                         position: { x: 0, y: 12, z: -20 },
                         title: "Scenic Viewpoint",
                         subtitle: "Best view in the area",
                         text: "From this position, you can see the entire layout.",
-                        icon: "MapPin"
+                        icon: "map-pin"
                     }
                 ];
 
-                loadHints(sampleHints);
+                this.loadHints(sampleHints);
                 alert('Sample hints generated!');
-            };
-
-            const togglePlay = () => {
-                if (pathRef.current.length === 0) {
+            }
+            
+            // UI methods
+            togglePlay() {
+                if (this.path.length === 0) {
                     alert('Please load a camera path first!');
                     return;
                 }
                 
-                const newIsPlaying = !isPlaying;
-                setIsPlaying(newIsPlaying);
-                isPlayingRef.current = newIsPlaying;
-            };
-
-            const resetCamera = () => {
-                if (pathRef.current.length === 0) return;
-                
-                currentPathPositionRef.current = 0;
-                setPathProgress(0);
-                updateCameraPosition();
-                setIsPlaying(false);
-                isPlayingRef.current = false;
-            };
-
-            const handleHintClick = (hint) => {
-                setActiveHint(hint);
-            };
-
-            const getIconComponent = (iconName) => {
-                switch (iconName) {
-                    case 'Eye':
-                        return Eye;
-                    case 'MapPin':
-                        return MapPin;
-                    default:
-                        return MapPin;
-                }
-            };
-
-            const handleGyroscopeEnable = async () => {
-                const granted = await requestGyroscopePermission();
-                if (granted) {
-                    alert('Gyroscope enabled! Tilt your device to look around.');
+                this.isPlaying = !this.isPlaying;
+                const playBtn = document.getElementById('play-btn');
+                if (this.isPlaying) {
+                    playBtn.innerHTML = '<span class="icon icon-pause"></span><span>Pause</span>';
+                    playBtn.className = playBtn.className.replace('button-default', 'button-destructive');
                 } else {
-                    alert('Gyroscope permission denied. You can still use touch controls.');
+                    playBtn.innerHTML = '<span class="icon icon-play"></span><span>Play</span>';
+                    playBtn.className = playBtn.className.replace('button-destructive', 'button-default');
                 }
-            };
+            }
+            
+            resetCamera() {
+                if (this.path.length === 0) return;
+                
+                this.currentPathPosition = 0;
+                this.updatePathProgress();
+                this.isPlaying = false;
+                this.togglePlay(); // Update button state
+                this.updateCameraPosition();
+            }
+            
+            toggleShowAllHints() {
+                this.showAllHints = !this.showAllHints;
+                document.getElementById('toggle-hints-btn').textContent = 
+                    this.showAllHints ? 'Hide Distant Hints' : 'Show All Hints';
+            }
+            
+            toggleUICollapse() {
+                const content = document.getElementById('panel-content');
+                const btn = document.getElementById('collapse-btn');
+                if (content.style.display === 'none') {
+                    content.style.display = 'block';
+                    btn.innerHTML = '<span class="icon icon-chevron-up"></span>';
+                } else {
+                    content.style.display = 'none';
+                    btn.innerHTML = '<span class="icon icon-chevron-down"></span>';
+                }
+            }
+            
+            showHintModal(hint) {
+                document.getElementById('hint-title').textContent = hint.title;
+                document.getElementById('hint-subtitle').textContent = hint.subtitle || '';
+                document.getElementById('hint-text').textContent = hint.text;
+                document.getElementById('hint-modal').classList.remove('hidden');
+            }
+            
+            closeHintModal() {
+                document.getElementById('hint-modal').classList.add('hidden');
+            }
+            
+            async requestGyroscopePermission() {
+                if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+                    try {
+                        const permission = await DeviceOrientationEvent.requestPermission();
+                        this.gyroscopePermission = permission;
+                        if (permission === 'granted') {
+                            document.getElementById('gyro-status').textContent = '✅ Gyroscope enabled';
+                            document.getElementById('gyro-prompt').classList.add('hidden');
+                            alert('Gyroscope enabled! Tilt your device to look around.');
+                        } else {
+                            alert('Gyroscope permission denied. You can still use touch controls.');
+                        }
+                    } catch (error) {
+                        console.error('Error requesting gyroscope permission:', error);
+                        this.gyroscopePermission = 'denied';
+                    }
+                }
+            }
+            
+            updateUI() {
+                // Show/hide path controls based on whether we have a path
+                if (this.path.length > 0) {
+                    document.getElementById('path-controls').classList.remove('hidden');
+                } else {
+                    document.getElementById('path-controls').classList.add('hidden');
+                }
+            }
+        }
 
-            // Update scrolling speed ref when UI state changes
-            React.useEffect(() => {
-                scrollingSpeedRef.current = scrollingSpeed;
-            }, [scrollingSpeed]);
-
-            return React.createElement('div', {
-                className: `w-full h-screen relative overflow-hidden ${isMobile ? 'touch-none' : ''}`,
-                style: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }
-            }, [
-                // 3D Canvas container
-                React.createElement('div', {
-                    key: 'canvas',
-                    ref: containerRef,
-                    className: "w-full h-full"
-                }),
-                
-                // 2D Hint Icons Overlay
-                React.createElement('div', {
-                    key: 'hints-overlay',
-                    className: "absolute inset-0 pointer-events-none z-10"
-                }, visibleHints.map((hint) => {
-                    const IconComponent = getIconComponent(hint.icon);
-                    return React.createElement('div', {
-                        key: hint.id,
-                        className: "absolute pointer-events-auto cursor-pointer transform -translate-x-1-2 -translate-y-1-2",
-                        style: {
-                            left: hint.screenX + 'px',
-                            top: hint.screenY + 'px',
-                            width: hint.size + 'px',
-                            height: hint.size + 'px',
-                        },
-                        onClick: () => handleHintClick(hint)
-                    }, React.createElement('div', {
-                        className: "bg-white bg-opacity-90 rounded-full p-2 shadow-lg border-2 border-blue-500 hover-bg-opacity-100 transition-all duration-200"
-                    }, React.createElement(IconComponent, {
-                        className: "w-full h-full text-blue-600"
-                    })));
-                })),
-                
-                // Collapsible Control panel
-                React.createElement('div', {
-                    key: 'controls',
-                    className: `absolute top-4 left-4 z-20 transition-all duration-300 ${isMobile ? 'w-80 max-w-90vw' : 'w-80'}`
-                }, React.createElement(Card, { className: "relative" }, [
-                    React.createElement(CardHeader, {
-                        key: 'header',
-                        className: "pb-2"
-                    }, React.createElement('div', {
-                        className: "flex items-center justify-between"
-                    }, [
-                        React.createElement(CardTitle, {
-                            key: 'title',
-                            className: `${isMobile ? 'text-base' : 'text-lg'}`
-                        }, `3D Tour Controls ${isMobile ? '📱' : ''}`),
-                        React.createElement(Button, {
-                            key: 'collapse-btn',
-                            onClick: () => setUiCollapsed(!uiCollapsed),
-                            variant: "ghost",
-                            size: "sm",
-                            className: "h-8 w-8 p-0"
-                        }, uiCollapsed ? React.createElement(ChevronDown, { className: "w-4 h-4" }) : React.createElement(ChevronUp, { className: "w-4 h-4" }))
-                    ])),
-                    
-                    !uiCollapsed && React.createElement(CardContent, {
-                        key: 'content',
-                        className: "space-y-3"
-                    }, [
-                        // Mobile gyroscope permission
-                        isMobile && gyroscopeSupported && gyroscopePermission === 'prompt' && React.createElement('div', {
-                            key: 'gyro-prompt',
-                            className: "space-y-2"
-                        }, React.createElement(Button, {
-                            onClick: handleGyroscopeEnable,
-                            className: "w-full text-sm",
-                            variant: "outline"
-                        }, '🎯 Enable Gyroscope Control')),
-                        
-                        // Mobile status indicator
-                        isMobile && React.createElement('div', {
-                            key: 'mobile-status',
-                            className: "text-xs bg-blue-50 p-2 rounded border border-blue-200"
-                        }, [
-                            React.createElement('p', {
-                                key: 'status1',
-                                className: "font-medium text-blue-800"
-                            }, '📱 Mobile Mode Active'),
-                            React.createElement('p', {
-                                key: 'status2',
-                                className: "text-blue-600"
-                            }, gyroscopePermission === 'granted' ? '✅ Gyroscope enabled' : '⚠️ Gyroscope disabled')
-                        ]),
-                        
-                        // Map loading
-                        React.createElement('div', {
-                            key: 'map-load',
-                            className: "space-y-2"
-                        }, [
-                            React.createElement('label', {
-                                key: 'label1',
-                                className: "block text-sm font-medium"
-                            }, 'Load Map/Environment:'),
-                            React.createElement('div', {
-                                key: 'buttons1',
-                                className: "flex items-center space-x-2"
-                            }, [
-                                React.createElement('input', {
-                                    key: 'input1',
-                                    type: "file",
-                                    accept: ".json,.glb,.gltf",
-                                    onChange: handleMapLoad,
-                                    className: "hidden",
-                                    id: "map-upload"
-                                }),
-                                React.createElement(Button, {
-                                    key: 'btn1',
-                                    onClick: () => document.getElementById('map-upload').click(),
-                                    variant: "outline",
-                                    size: "sm",
-                                    className: "flex items-center space-x-1 text-xs"
-                                }, [
-                                    React.createElement(Upload, { key: 'icon1', className: "w-3 h-3" }),
-                                    React.createElement('span', { key: 'text1' }, 'Load Map')
-                                ])
-                            ])
-                        ]),
-                        
-                        // Path loading
-                        React.createElement('div', {
-                            key: 'path-load',
-                            className: "space-y-2"
-                        }, [
-                            React.createElement('label', {
-                                key: 'label2',
-                                className: "block text-sm font-medium"
-                            }, 'Camera Path:'),
-                            React.createElement('div', {
-                                key: 'buttons2',
-                                className: "flex items-center space-x-2"
-                            }, [
-                                React.createElement('input', {
-                                    key: 'input2',
-                                    type: "file",
-                                    accept: ".json",
-                                    onChange: handlePathLoad,
-                                    className: "hidden",
-                                    id: "path-upload"
-                                }),
-                                React.createElement(Button, {
-                                    key: 'btn2',
-                                    onClick: () => document.getElementById('path-upload').click(),
-                                    variant: "outline",
-                                    size: "sm",
-                                    className: "flex items-center space-x-1 text-xs"
-                                }, [
-                                    React.createElement(Upload, { key: 'icon2', className: "w-3 h-3" }),
-                                    React.createElement('span', { key: 'text2' }, 'Load Path')
-                                ]),
-                                React.createElement(Button, {
-                                    key: 'btn3',
-                                    onClick: generateSamplePath,
-                                    variant: "outline",
-                                    size: "sm",
-                                    className: "text-xs"
-                                }, 'Sample Path')
-                            ])
-                        ]),
-                        
-                        // Hints loading
-                        React.createElement('div', {
-                            key: 'hints-load',
-                            className: "space-y-2"
-                        }, [
-                            React.createElement('label', {
-                                key: 'label3',
-                                className: "block text-sm font-medium"
-                            }, 'Hints:'),
-                            React.createElement('div', {
-                                key: 'buttons3',
-                                className: "flex items-center space-x-2"
-                            }, [
-                                React.createElement('input', {
-                                    key: 'input3',
-                                    type: "file",
-                                    accept: ".json",
-                                    onChange: handleHintLoad,
-                                    className: "hidden",
-                                    id: "hint-upload"
-                                }),
-                                React.createElement(Button, {
-                                    key: 'btn4',
-                                    onClick: () => document.getElementById('hint-upload').click(),
-                                    variant: "outline",
-                                    size: "sm",
-                                    className: "flex items-center space-x-1 text-xs"
-                                }, [
-                                    React.createElement(MapPin, { key: 'icon3', className: "w-3 h-3" }),
-                                    React.createElement('span', { key: 'text3' }, 'Load Hints')
-                                ]),
-                                React.createElement(Button, {
-                                    key: 'btn5',
-                                    onClick: generateSampleHints,
-                                    variant: "outline",
-                                    size: "sm",
-                                    className: "text-xs"
-                                }, 'Sample Hints')
-                            ])
-                        ]),
-                        
-                        // Hint settings
-                        React.createElement('div', {
-                            key: 'hint-settings',
-                            className: "space-y-2"
-                        }, [
-                            React.createElement('label', {
-                                key: 'label4',
-                                className: "block text-sm font-medium"
-                            }, 'Hint Settings:'),
-                            React.createElement('div', {
-                                key: 'settings-content',
-                                className: "space-y-2"
-                            }, [
-                                React.createElement(Button, {
-                                    key: 'toggle-hints',
-                                    onClick: () => setShowAllHints(!showAllHints),
-                                    variant: showAllHints ? "default" : "outline",
-                                    size: "sm",
-                                    className: "w-full text-xs"
-                                }, showAllHints ? 'Hide Distant Hints' : 'Show All Hints'),
-                                React.createElement('div', {
-                                    key: 'distance-slider',
-                                    className: "flex items-center space-x-2"
-                                }, [
-                                    React.createElement('label', {
-                                        key: 'label5',
-                                        className: "text-xs"
-                                    }, 'Distance:'),
-                                    React.createElement('input', {
-                                        key: 'slider',
-                                        type: "range",
-                                        min: "5",
-                                        max: "50",
-                                        value: hintVisibilityDistance,
-                                        onChange: (e) => setHintVisibilityDistance(Number(e.target.value)),
-                                        className: "flex-1"
-                                    }),
-                                    React.createElement('span', {
-                                        key: 'value',
-                                        className: "text-xs w-8"
-                                    }, hintVisibilityDistance)
-                                ])
-                            ])
-                        ]),
-                        
-                        // Path controls
-                        hasPath && React.createElement('div', {
-                            key: 'path-controls',
-                            className: "space-y-2"
-                        }, [
-                            React.createElement('label', {
-                                key: 'progress-label',
-                                className: "block text-sm font-medium"
-                            }, `Path Progress: ${Math.round(pathProgress)}%`),
-                            React.createElement('div', {
-                                key: 'progress-bar',
-                                className: "progress-bar"
-                            }, React.createElement('div', {
-                                key: 'progress-fill',
-                                className: "progress-fill",
-                                style: { width: pathProgress + '%' }
-                            })),
-                            
-                            React.createElement('div', {
-                                key: 'speed-control',
-                                className: "space-y-2"
-                            }, [
-                                React.createElement('label', {
-                                    key: 'speed-label',
-                                    className: "block text-sm font-medium"
-                                }, 'Scrolling Speed:'),
-                                React.createElement('div', {
-                                    key: 'speed-slider-container',
-                                    className: "flex items-center space-x-2"
-                                }, [
-                                    React.createElement('span', {
-                                        key: 'min-speed',
-                                        className: "text-xs w-8"
-                                    }, '0.1x'),
-                                    React.createElement('input', {
-                                        key: 'speed-slider',
-                                        type: "range",
-                                        min: "0.1",
-                                        max: "3.0",
-                                        step: "0.1",
-                                        value: scrollingSpeed,
-                                        onChange: (e) => setScrollingSpeed(Number(e.target.value)),
-                                        className: "flex-1"
-                                    }),
-                                    React.createElement('span', {
-                                        key: 'max-speed',
-                                        className: "text-xs w-8"
-                                    }, '3.0x')
-                                ]),
-                                React.createElement('div', {
-                                    key: 'speed-display',
-                                    className: "text-center"
-                                }, React.createElement('span', {
-                                    className: "text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded"
-                                }, `${scrollingSpeed}x speed`))
-                            ]),
-                            
-                            React.createElement('div', {
-                                key: 'playback-controls',
-                                className: "flex space-x-2"
-                            }, [
-                                React.createElement(Button, {
-                                    key: 'play-btn',
-                                    onClick: togglePlay,
-                                    variant: isPlaying ? "destructive" : "default",
-                                    size: "sm",
-                                    className: "flex items-center space-x-1 text-xs"
-                                }, [
-                                    isPlaying ? React.createElement(Pause, { key: 'pause-icon', className: "w-3 h-3" }) : React.createElement(Play, { key: 'play-icon', className: "w-3 h-3" }),
-                                    React.createElement('span', { key: 'play-text' }, isPlaying ? 'Pause' : 'Play')
-                                ]),
-                                React.createElement(Button, {
-                                    key: 'reset-btn',
-                                    onClick: resetCamera,
-                                    variant: "outline",
-                                    size: "sm",
-                                    className: "flex items-center space-x-1 text-xs"
-                                }, [
-                                    React.createElement(RotateCcw, { key: 'reset-icon', className: "w-3 h-3" }),
-                                    React.createElement('span', { key: 'reset-text' }, 'Reset')
-                                ])
-                            ])
-                        ]),
-                        
-                        // Instructions
-                        React.createElement('div', {
-                            key: 'instructions',
-                            className: "text-xs text-gray-600 space-y-1"
-                        }, isMobile ? [
-                            React.createElement('p', { key: '1' }, React.createElement('strong', {}, '📱 Gyroscope:'), ' Tilt device to look around'),
-                            React.createElement('p', { key: '2' }, React.createElement('strong', {}, '👆 Touch Scroll:'), ' Swipe vertically to navigate path'),
-                            React.createElement('p', { key: '3' }, React.createElement('strong', {}, '💡 Hints:'), ' Tap 2D icons to view information'),
-                            React.createElement('p', { key: '4' }, React.createElement('strong', {}, '🚫 No Page Scroll:'), ' All scrolling disabled'),
-                            React.createElement('p', { key: '5' }, React.createElement('strong', {}, '⚡ Speed Control:'), ' Adjust scrolling speed (0.1x - 3.0x)')
-                        ] : [
-                            React.createElement('p', { key: '1' }, React.createElement('strong', {}, '🖱️ Mouse:'), ' Move to look around (click to lock pointer)'),
-                            React.createElement('p', { key: '2' }, React.createElement('strong', {}, '🎡 Mouse Wheel:'), ' Navigate along path (infinite loop)'),
-                            React.createElement('p', { key: '3' }, React.createElement('strong', {}, '💡 Hints:'), ' Click 2D icons to view information'),
-                            React.createElement('p', { key: '4' }, React.createElement('strong', {}, '🚫 No Page Scroll:'), ' All scrolling disabled'),
-                            React.createElement('p', { key: '5' }, React.createElement('strong', {}, '⚡ Speed Control:'), ' Adjust scrolling speed (0.1x - 3.0x)')
-                        ].concat(React.createElement('p', { key: '6' }, React.createElement('strong', {}, '🗺️ Map Format:'), ' GLB, GLTF files supported')))
-                    ])
-                ])),
-                
-                // Hint display modal
-                activeHint && React.createElement('div', {
-                    key: 'hint-modal',
-                    className: "absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-30 p-4"
-                }, React.createElement(Card, {
-                    className: `${isMobile ? 'w-full max-w-sm' : 'w-96 max-w-90vw'}`
-                }, [
-                    React.createElement(CardHeader, {
-                        key: 'modal-header',
-                        className: "flex flex-row items-center justify-between"
-                    }, [
-                        React.createElement('div', {
-                            key: 'modal-title'
-                        }, [
-                            React.createElement(CardTitle, {
-                                key: 'title',
-                                className: `${isMobile ? 'text-lg' : 'text-xl'}`
-                            }, activeHint.title),
-                            activeHint.subtitle && React.createElement('p', {
-                                key: 'subtitle',
-                                className: "text-sm text-gray-600 mt-1"
-                            }, activeHint.subtitle)
-                        ]),
-                        React.createElement(Button, {
-                            key: 'close-btn',
-                            onClick: () => setActiveHint(null),
-                            variant: "ghost",
-                            size: "sm",
-                            className: "h-8 w-8 p-0"
-                        }, React.createElement(X, { className: "w-4 h-4" }))
-                    ]),
-                    React.createElement(CardContent, {
-                        key: 'modal-content'
-                    }, [
-                        React.createElement('p', {
-                            key: 'hint-text',
-                            className: "text-sm leading-relaxed mb-4"
-                        }, activeHint.text),
-                        React.createElement(Button, {
-                            key: 'close-btn2',
-                            onClick: () => setActiveHint(null),
-                            className: "w-full"
-                        }, 'Close')
-                    ])
-                ])),
-                
-                // Loading overlay
-                !isLoaded && React.createElement('div', {
-                    key: 'loading',
-                    className: "absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 z-40"
-                }, React.createElement('div', {
-                    className: "text-white text-xl"
-                }, 'Loading 3D Scene...'))
-            ]);
-        };
-
-        // Render the app
-        ReactDOM.render(React.createElement(MobileAdaptedTour), document.getElementById('root'));
+        // Initialize the application when the page loads
+        window.addEventListener('DOMContentLoaded', () => {
+            new VirtualTour();
+        });
     </script>
 </body>
 </html>
