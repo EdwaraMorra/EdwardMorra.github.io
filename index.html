@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>3D Virtual Tour</title>
     
+    <!-- Three.js Module Import -->
     <script type="importmap">
         {
             "imports": {
@@ -13,10 +14,6 @@
             }
         }
     </script>
-
-    <!-- Three.js from CDN -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/loaders/GLTFLoader.js"></script>
     
     <style>
         * {
@@ -463,6 +460,24 @@
             transition: width 0.2s;
         }
         
+        .status-loading {
+            background: rgba(255, 193, 7, 0.2);
+            color: #ffa000;
+            border-left: 4px solid #ffc107;
+        }
+        
+        .status-success {
+            background: rgba(76, 175, 80, 0.2);
+            color: #4caf50;
+            border-left: 4px solid #4caf50;
+        }
+        
+        .status-error {
+            background: rgba(244, 67, 54, 0.2);
+            color: #f44336;
+            border-left: 4px solid #f44336;
+        }
+        
         /* Simple icon styles */
         .icon {
             width: 1rem;
@@ -505,17 +520,6 @@
         .icon-chevron-down::before {
             content: '↓';
         }
-
-        #status {
-            margin-top: 15px;
-            padding: 12px;
-            border-radius: 6px;
-            font-size: 14px;
-            min-height: 20px;
-            text-align: center;
-            transition: all 0.3s;
-        }
-        
     </style>
 </head>
 <body>
@@ -553,8 +557,6 @@
                 <!-- Map loading -->
                 <div class="space-y-2">
                     <label class="block text-sm font-medium">Load Map/Environment:</label>
-                    <input type="file" id="file-input" accept=".gltf,.glb">
-                    <div id="status">Готов к загрузке моделей</div>
                     <div class="flex items-center space-x-2">
                         <input type="file" accept=".json,.glb,.gltf" id="map-upload" class="hidden">
                         <button id="load-map-btn" class="button button-outline button-sm flex items-center space-x-1 text-xs">
@@ -562,6 +564,8 @@
                             <span>Load Map</span>
                         </button>
                     </div>
+                    <!-- Status for GLTF loading -->
+                    <div id="map-load-status" class="text-xs p-2 rounded hidden"></div>
                 </div>
 
                 <!-- Path loading -->
@@ -679,20 +683,28 @@
         <div class="text-white text-xl">Loading 3D Scene...</div>
     </div>
 
-    <script>
+    <script type="module">
+        import * as THREE from 'three';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
         // Main application
         class VirtualTour {
             constructor() {
                 this.scene = null;
                 this.renderer = null;
                 this.camera = null;
-                this.glftLoader = null;
+                this.gltfLoader = null;
+                this.controls = null;
                 
                 this.path = [];
                 this.currentPathPosition = 0;
                 this.isPlaying = false;
                 this.hints = [];
                 this.visibleHints = [];
+                
+                // Current model
+                this.currentModel = null;
                 
                 // Mobile-specific
                 this.isMobile = false;
@@ -706,7 +718,7 @@
                 this.isPointerLocked = false;
                 
                 // Settings
-                this.scrollingSpeed = 10.0;
+                this.scrollingSpeed = 1.0;
                 this.showAllHints = false;
                 this.hintVisibilityDistance = 15;
                 
@@ -714,6 +726,7 @@
                 this.canvasContainer = document.getElementById('canvas-container');
                 this.hintsOverlay = document.getElementById('hints-overlay');
                 this.controlPanel = document.getElementById('control-panel');
+                this.mapLoadStatus = document.getElementById('map-load-status');
                 
                 this.init();
             }
@@ -800,7 +813,6 @@
                 // Scene setup
                 this.scene = new THREE.Scene();
                 this.scene.background = new THREE.Color(0x87CEEB);
-                this.scene.fog = new THREE.Fog(0x1a1a2e, 10, 50);
 
                 // Camera setup
                 this.camera = new THREE.PerspectiveCamera(
@@ -818,123 +830,22 @@
                 this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
                 this.canvasContainer.appendChild(this.renderer.domElement);
 
+                // OrbitControls for easier camera control
+                this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+                this.controls.enableDamping = true;
+                this.controls.dampingFactor = 0.05;
+
+                // GLTF Loader
+                this.gltfLoader = new GLTFLoader();
+
                 // Lighting
-                const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+                const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
                 this.scene.add(ambientLight);
 
                 const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
                 directionalLight.position.set(50, 50, 50);
                 directionalLight.castShadow = true;
                 this.scene.add(directionalLight);
-
-
-
-
-
-                // GLTF Loader
-                const loader = new GLTFLoader();
-                const loadLocalBtn = document.getElementById('load-map-btn');
-                const statusDiv = document.getElementById('status');
-
-// Функция для обновления статуса
-        function updateStatus(message, type = '') {
-            statusDiv.textContent = message;
-            statusDiv.className = type;
-        }
-
-function loadModel(url, isLocal = false) {
-            updateStatus('Загрузка модели...', 'loading');
-            
-            loader.load(
-                url,
-                
-                // onLoad callback
-                function (gltf) {
-                    // Удаляем предыдущую модель, если есть
-                    if (currentModel) {
-                        scene.remove(currentModel);
-                    }
-                    
-                    const model = gltf.scene;
-                    currentModel = model;
-                    
-                    // Настройка модели
-                    model.traverse((child) => {
-                        if (child.isMesh) {
-                            child.castShadow = true;
-                            child.receiveShadow = true;
-                            
-                            // Улучшаем материалы для лучшего отображения
-                            if (child.material) {
-                                child.material.metalness = 0.1;
-                                child.material.roughness = 0.8;
-                            }
-                        }
-                    });
-                    
-                    // Центрирование модели
-                    const box = new THREE.Box3().setFromObject(model);
-                    const center = box.getCenter(new THREE.Vector3());
-                    const size = box.getSize(new THREE.Vector3());
-                    
-                    model.position.x -= center.x;
-                    model.position.y -= center.y;
-                    model.position.z -= center.z;
-                    
-                    // Добавление в сцену
-                    scene.add(model);
-                    
-                    updateStatus(`Модель успешно загружена!`, 'success');
-                    
-                    // Освобождаем URL, если это локальный файл
-                    if (isLocal) {
-                        URL.revokeObjectURL(url);
-                    }
-                },
-                
-                // onProgress callback
-                function (xhr) {
-                    if (xhr.lengthComputable) {
-                        const percentComplete = (xhr.loaded / xhr.total * 100).toFixed(2);
-                        updateStatus(`Загрузка: ${percentComplete}%`, 'loading');
-                    }
-                },
-                
-                // onError callback
-                function (error) {
-                    console.error('Ошибка загрузки модели:', error);
-                    updateStatus('Ошибка загрузки модели. Проверьте консоль для подробностей.', 'error');
-                    
-                    // Создание куба как запасного варианта
-                    createFallbackCube();
-                }
-            );
-        }
-
-
-                // Загрузка локальной модели
-        loadLocalBtn.addEventListener('click', () => {
-            fileInput.click();
-        });
-
-        fileInput.addEventListener('change', (event) => {
-            const file = event.target.files[0];
-            if (!file) return;
-            
-            // Проверяем расширение файла
-            const fileName = file.name.toLowerCase();
-            if (!fileName.endsWith('.gltf') && !fileName.endsWith('.glb')) {
-                updateStatus('Ошибка: выберите файл с расширением .gltf или .glb', 'error');
-                return;
-            }
-            
-            // Создаем URL для файла
-            const fileURL = URL.createObjectURL(file);
-            loadModel(fileURL, true);
-            
-            // Сбрасываем input для возможности повторной загрузки того же файла
-            fileInput.value = '';
-        });
 
                 // Create default scene
                 this.createDefaultScene();
@@ -1144,6 +1055,7 @@ function loadModel(url, isLocal = false) {
                 }
 
                 this.updateHintVisibility();
+                this.controls.update();
                 this.renderer.render(this.scene, this.camera);
             }
             
@@ -1220,6 +1132,107 @@ function loadModel(url, isLocal = false) {
                 });
             }
             
+            handleMapLoad(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+                
+                // Check file extension
+                const fileName = file.name.toLowerCase();
+                if (!fileName.endsWith('.gltf') && !fileName.endsWith('.glb')) {
+                    this.updateMapLoadStatus('Error: Please select a GLTF or GLB file', 'error');
+                    return;
+                }
+                
+                // Create URL for the file
+                const fileURL = URL.createObjectURL(file);
+                
+                // Update status
+                this.updateMapLoadStatus('Loading model...', 'loading');
+                
+                // Load the model
+                this.gltfLoader.load(
+                    fileURL,
+                    
+                    // onLoad callback
+                    (gltf) => {
+                        // Remove previous model if exists
+                        if (this.currentModel) {
+                            this.scene.remove(this.currentModel);
+                        }
+                        
+                        const model = gltf.scene;
+                        this.currentModel = model;
+                        
+                        // Configure the model
+                        model.traverse((child) => {
+                            if (child.isMesh) {
+                                child.castShadow = true;
+                                child.receiveShadow = true;
+                            }
+                        });
+                        
+                        // Center the model
+                        const box = new THREE.Box3().setFromObject(model);
+                        const center = box.getCenter(new THREE.Vector3());
+                        const size = box.getSize(new THREE.Vector3());
+                        
+                        model.position.x -= center.x;
+                        model.position.y -= center.y;
+                        model.position.z -= center.z;
+                        
+                        // Add to scene
+                        this.scene.add(model);
+                        
+                        // Update status
+                        this.updateMapLoadStatus(`Model loaded successfully! Size: ${size.x.toFixed(2)} x ${size.y.toFixed(2)} x ${size.z.toFixed(2)}`, 'success');
+                        
+                        // Release the object URL
+                        URL.revokeObjectURL(fileURL);
+                    },
+                    
+                    // onProgress callback
+                    (xhr) => {
+                        if (xhr.lengthComputable) {
+                            const percentComplete = (xhr.loaded / xhr.total * 100).toFixed(2);
+                            this.updateMapLoadStatus(`Loading: ${percentComplete}%`, 'loading');
+                        }
+                    },
+                    
+                    // onError callback
+                    (error) => {
+                        console.error('Error loading model:', error);
+                        this.updateMapLoadStatus('Error loading model. Check console for details.', 'error');
+                        
+                        // Create fallback cube
+                        this.createFallbackCube();
+                    }
+                );
+            }
+            
+            updateMapLoadStatus(message, type) {
+                this.mapLoadStatus.textContent = message;
+                this.mapLoadStatus.className = `text-xs p-2 rounded ${type ? 'status-' + type : ''}`;
+                this.mapLoadStatus.classList.remove('hidden');
+            }
+            
+            createFallbackCube() {
+                if (this.currentModel) {
+                    this.scene.remove(this.currentModel);
+                }
+                
+                const geometry = new THREE.BoxGeometry(2, 2, 2);
+                const material = new THREE.MeshStandardMaterial({ 
+                    color: 0x4a6fa5,
+                    metalness: 0.3,
+                    roughness: 0.4
+                });
+                const cube = new THREE.Mesh(geometry, material);
+                cube.castShadow = true;
+                this.scene.add(cube);
+                
+                this.currentModel = cube;
+                this.updateMapLoadStatus('Fallback cube loaded', 'success');
+            }
             
             handlePathLoad(event) {
                 const file = event.target.files[0];
