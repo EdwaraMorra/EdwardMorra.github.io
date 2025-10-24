@@ -520,6 +520,75 @@
         .icon-chevron-down::before {
             content: '↓';
         }
+
+        /* Hint Modal Styles */
+        #hint-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            backdrop-filter: blur(4px);
+        }
+
+        .hint-modal-content {
+            background: white;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            padding: 0;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            overflow: hidden;
+        }
+
+        .hint-modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .hint-modal-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #1f2937;
+        }
+
+        .hint-modal-subtitle {
+            font-size: 1rem;
+            color: #6b7280;
+        }
+
+        .hint-modal-body {
+            padding: 1.5rem;
+            line-height: 1.6;
+            color: #374151;
+        }
+
+        .hint-modal-footer {
+            padding: 1rem 1.5rem 1.5rem;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .hint-modal-close-btn {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.375rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .hint-modal-close-btn:hover {
+            background: #1d4ed8;
+        }
     </style>
 </head>
 <body>
@@ -658,22 +727,17 @@
     </div>
 
     <!-- Hint Modal -->
-    <div id="hint-modal" class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-30 p-4 hidden">
-        <div class="card w-96 max-w-90vw">
-            <div class="card-header flex flex-row items-center justify-between">
-                <div>
-                    <h3 id="hint-title" class="card-title text-xl"></h3>
-                    <p id="hint-subtitle" class="text-sm text-gray-600 mt-1"></p>
-                </div>
-                <button id="close-hint-btn" class="button button-ghost h-8 w-8 p-0">
-                    <span class="icon icon-x"></span>
-                </button>
+    <div id="hint-modal" class="hidden">
+        <div class="hint-modal-content">
+            <div class="hint-modal-header">
+                <h2 id="hint-modal-title" class="hint-modal-title"></h2>
+                <p id="hint-modal-subtitle" class="hint-modal-subtitle"></p>
             </div>
-            <div class="card-content">
-                <p id="hint-text" class="text-sm leading-relaxed mb-4"></p>
-                <button id="close-hint-btn2" class="button button-default w-full">
-                    Close
-                </button>
+            <div class="hint-modal-body">
+                <p id="hint-modal-text"></p>
+            </div>
+            <div class="hint-modal-footer">
+                <button id="hint-modal-close-btn" class="hint-modal-close-btn">Close</button>
             </div>
         </div>
     </div>
@@ -720,11 +784,15 @@
                 this.showAllHints = false;
                 this.hintVisibilityDistance = 15;
                 
+                // Modal state
+                this.isModalOpen = false;
+                
                 // DOM elements
                 this.canvasContainer = document.getElementById('canvas-container');
                 this.hintsOverlay = document.getElementById('hints-overlay');
                 this.controlPanel = document.getElementById('control-panel');
                 this.mapLoadStatus = document.getElementById('map-load-status');
+                this.hintModal = document.getElementById('hint-modal');
                 
                 this.init();
             }
@@ -792,8 +860,7 @@
                 document.getElementById('play-btn').addEventListener('click', () => this.togglePlay());
                 document.getElementById('reset-btn').addEventListener('click', () => this.resetCamera());
                 document.getElementById('collapse-btn').addEventListener('click', () => this.toggleUICollapse());
-                document.getElementById('close-hint-btn').addEventListener('click', () => this.closeHintModal());
-                document.getElementById('close-hint-btn2').addEventListener('click', () => this.closeHintModal());
+                document.getElementById('hint-modal-close-btn').addEventListener('click', () => this.closeHintModal());
                 
                 // Sliders
                 document.getElementById('hint-distance-slider').addEventListener('input', (e) => {
@@ -902,6 +969,8 @@
                 };
 
                 const handleTouchMove = (event) => {
+                    if (this.isModalOpen) return;
+                    
                     if (event.touches.length === 1 && this.isMobile && this.path.length > 0) {
                         const touch = event.touches[0];
                         const deltaY = touch.clientY - lastTouch.y;
@@ -929,6 +998,7 @@
 
                 // Mouse controls for desktop
                 const handleMouseMove = (event) => {
+                    if (this.isModalOpen) return;
                     if (!this.isMobile && !this.isPointerLocked) return;
 
                     const deltaX = event.movementX * this.mouseSensitivity;
@@ -946,6 +1016,7 @@
                 };
 
                 const handleClick = () => {
+                    if (this.isModalOpen) return;
                     if (!this.isMobile && !this.isPointerLocked) {
                         this.canvasContainer.requestPointerLock();
                     }
@@ -959,6 +1030,7 @@
                 };
 
                 const handleWheel = (event) => {
+                    if (this.isModalOpen) return;
                     if (this.isMobile) return;
                     
                     event.preventDefault();
@@ -979,6 +1051,7 @@
 
                 // Gyroscope handling
                 const handleDeviceOrientation = (event) => {
+                    if (this.isModalOpen) return;
                     if (!this.isMobile || !this.gyroscopeSupported || this.gyroscopePermission !== 'granted') return;
 
                     this.gyroscopeData = {
@@ -1036,7 +1109,7 @@
             animate() {
                 requestAnimationFrame(() => this.animate());
                 
-                if (this.isPlaying && this.path.length > 0) {
+                if (this.isPlaying && this.path.length > 0 && !this.isModalOpen) {
                     this.currentPathPosition += 0.02 * this.scrollingSpeed;
                     
                     if (this.currentPathPosition >= this.path.length) {
@@ -1085,7 +1158,7 @@
             }
             
             updateHintVisibility() {
-                if (!this.camera || this.hints.length === 0) return;
+                if (!this.camera || this.hints.length === 0 || this.isModalOpen) return;
 
                 const newVisibleHints = [];
                 this.hintsOverlay.innerHTML = '';
@@ -1376,14 +1449,24 @@
             }
             
             showHintModal(hint) {
-                document.getElementById('hint-title').textContent = hint.title;
-                document.getElementById('hint-subtitle').textContent = hint.subtitle || '';
-                document.getElementById('hint-text').textContent = hint.text;
-                document.getElementById('hint-modal').classList.remove('hidden');
+                // Pause the game
+                this.isModalOpen = true;
+                
+                // Set modal content
+                document.getElementById('hint-modal-title').textContent = hint.title;
+                document.getElementById('hint-modal-subtitle').textContent = hint.subtitle || '';
+                document.getElementById('hint-modal-text').textContent = hint.text;
+                
+                // Show modal
+                this.hintModal.classList.remove('hidden');
             }
             
             closeHintModal() {
-                document.getElementById('hint-modal').classList.add('hidden');
+                // Resume the game
+                this.isModalOpen = false;
+                
+                // Hide modal
+                this.hintModal.classList.add('hidden');
             }
             
             async requestGyroscopePermission() {
