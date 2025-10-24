@@ -686,7 +686,6 @@
     <script type="module">
         import * as THREE from 'three';
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
         // Main application
         class VirtualTour {
@@ -695,7 +694,6 @@
                 this.renderer = null;
                 this.camera = null;
                 this.gltfLoader = null;
-                this.controls = null;
                 
                 this.path = [];
                 this.currentPathPosition = 0;
@@ -829,11 +827,6 @@
                 this.renderer.shadowMap.enabled = true;
                 this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
                 this.canvasContainer.appendChild(this.renderer.domElement);
-
-                // OrbitControls for easier camera control
-                this.controls = new OrbitControls(this.camera, this.renderer.domElement);
-                this.controls.enableDamping = true;
-                this.controls.dampingFactor = 0.05;
 
                 // GLTF Loader
                 this.gltfLoader = new GLTFLoader();
@@ -1055,7 +1048,6 @@
                 }
 
                 this.updateHintVisibility();
-                this.controls.update();
                 this.renderer.render(this.scene, this.camera);
             }
             
