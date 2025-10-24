@@ -5,6 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>3D Virtual Tour</title>
     
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/"
+            }
+        }
+    </script>
+
     <!-- Three.js from CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/loaders/GLTFLoader.js"></script>
@@ -496,6 +505,17 @@
         .icon-chevron-down::before {
             content: '↓';
         }
+
+        #status {
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            min-height: 20px;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        
     </style>
 </head>
 <body>
@@ -533,6 +553,8 @@
                 <!-- Map loading -->
                 <div class="space-y-2">
                     <label class="block text-sm font-medium">Load Map/Environment:</label>
+                    <input type="file" id="file-input" accept=".gltf,.glb">
+                    <div id="status">Готов к загрузке моделей</div>
                     <div class="flex items-center space-x-2">
                         <input type="file" accept=".json,.glb,.gltf" id="map-upload" class="hidden">
                         <button id="load-map-btn" class="button button-outline button-sm flex items-center space-x-1 text-xs">
@@ -684,7 +706,7 @@
                 this.isPointerLocked = false;
                 
                 // Settings
-                this.scrollingSpeed = 1.0;
+                this.scrollingSpeed = 10.0;
                 this.showAllHints = false;
                 this.hintVisibilityDistance = 15;
                 
@@ -778,6 +800,7 @@
                 // Scene setup
                 this.scene = new THREE.Scene();
                 this.scene.background = new THREE.Color(0x87CEEB);
+                this.scene.fog = new THREE.Fog(0x1a1a2e, 10, 50);
 
                 // Camera setup
                 this.camera = new THREE.PerspectiveCamera(
@@ -796,7 +819,7 @@
                 this.canvasContainer.appendChild(this.renderer.domElement);
 
                 // Lighting
-                const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
                 this.scene.add(ambientLight);
 
                 const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
@@ -804,7 +827,114 @@
                 directionalLight.castShadow = true;
                 this.scene.add(directionalLight);
 
+
+
+
+
                 // GLTF Loader
+                const loader = new GLTFLoader();
+                const loadLocalBtn = document.getElementById('load-map-btn');
+                const statusDiv = document.getElementById('status');
+
+// Функция для обновления статуса
+        function updateStatus(message, type = '') {
+            statusDiv.textContent = message;
+            statusDiv.className = type;
+        }
+
+function loadModel(url, isLocal = false) {
+            updateStatus('Загрузка модели...', 'loading');
+            
+            loader.load(
+                url,
+                
+                // onLoad callback
+                function (gltf) {
+                    // Удаляем предыдущую модель, если есть
+                    if (currentModel) {
+                        scene.remove(currentModel);
+                    }
+                    
+                    const model = gltf.scene;
+                    currentModel = model;
+                    
+                    // Настройка модели
+                    model.traverse((child) => {
+                        if (child.isMesh) {
+                            child.castShadow = true;
+                            child.receiveShadow = true;
+                            
+                            // Улучшаем материалы для лучшего отображения
+                            if (child.material) {
+                                child.material.metalness = 0.1;
+                                child.material.roughness = 0.8;
+                            }
+                        }
+                    });
+                    
+                    // Центрирование модели
+                    const box = new THREE.Box3().setFromObject(model);
+                    const center = box.getCenter(new THREE.Vector3());
+                    const size = box.getSize(new THREE.Vector3());
+                    
+                    model.position.x -= center.x;
+                    model.position.y -= center.y;
+                    model.position.z -= center.z;
+                    
+                    // Добавление в сцену
+                    scene.add(model);
+                    
+                    updateStatus(`Модель успешно загружена!`, 'success');
+                    
+                    // Освобождаем URL, если это локальный файл
+                    if (isLocal) {
+                        URL.revokeObjectURL(url);
+                    }
+                },
+                
+                // onProgress callback
+                function (xhr) {
+                    if (xhr.lengthComputable) {
+                        const percentComplete = (xhr.loaded / xhr.total * 100).toFixed(2);
+                        updateStatus(`Загрузка: ${percentComplete}%`, 'loading');
+                    }
+                },
+                
+                // onError callback
+                function (error) {
+                    console.error('Ошибка загрузки модели:', error);
+                    updateStatus('Ошибка загрузки модели. Проверьте консоль для подробностей.', 'error');
+                    
+                    // Создание куба как запасного варианта
+                    createFallbackCube();
+                }
+            );
+        }
+
+
+                // Загрузка локальной модели
+        loadLocalBtn.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            // Проверяем расширение файла
+            const fileName = file.name.toLowerCase();
+            if (!fileName.endsWith('.gltf') && !fileName.endsWith('.glb')) {
+                updateStatus('Ошибка: выберите файл с расширением .gltf или .glb', 'error');
+                return;
+            }
+            
+            // Создаем URL для файла
+            const fileURL = URL.createObjectURL(file);
+            loadModel(fileURL, true);
+            
+            // Сбрасываем input для возможности повторной загрузки того же файла
+            fileInput.value = '';
+        });
 
                 // Create default scene
                 this.createDefaultScene();
