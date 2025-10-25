@@ -816,7 +816,7 @@
                 this.hintModal = document.getElementById('hint-modal');
                 
                 // Inertia parameters
-                this.acceleration = 0.001;
+                this.acceleration = 0.0005;
                 this.deceleration = 0.95;
                 this.maxSpeed = 0.02;
                 
@@ -828,7 +828,6 @@
                 this.setupEventListeners();
                 this.initThreeJS();
                 this.loadDefaultMap();
-                this.loadDefaultPath();
                 this.updateUI();
             }
             
@@ -1015,10 +1014,8 @@
                         // Add to scene
                         this.scene.add(model);
                         
-                        // Update path with new offset
-                        if (this.curve) {
-                            this.setPathFromData({ points: this.path });
-                        }
+                        // Load default path after map is loaded
+                        this.loadDefaultPath();
                         
                         // Update status
                         this.updateMapLoadStatus(`Default map loaded successfully! Size: ${size.x.toFixed(2)} x ${size.y.toFixed(2)} x ${size.z.toFixed(2)}`, 'success');
@@ -1036,6 +1033,8 @@
                     (error) => {
                         console.error('Error loading default map:', error);
                         this.updateMapLoadStatus('Default map not found. You can load a map manually.', 'error');
+                        // Load default path even if map fails
+                        this.loadDefaultPath();
                     }
                 );
             }
@@ -1082,9 +1081,15 @@
                 // Create curve from points with adjustable smoothing
                 this.curve = this.createSmoothCurve(adjustedPoints);
                 
+                // Check if curve was created successfully
+                if (!this.curve) {
+                    console.error('Failed to create path curve');
+                    return;
+                }
+                
                 // Create visualization
                 const pathGeometry = new THREE.BufferGeometry().setFromPoints(this.curve.getPoints(500));
-                const pathMaterial = new THREE.LineBasicMaterial({ color: 0xffffff00 });
+                const pathMaterial = new THREE.LineBasicMaterial({ color: 0x00ff00 });
                 this.pathLine = new THREE.Line(pathGeometry, pathMaterial);
                 this.scene.add(this.pathLine);
                 
