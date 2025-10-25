@@ -529,7 +529,7 @@
             width: 100%;
             height: 100%;
             background-color: rgba(0, 0, 0, 0.7);
-            display: flex;
+            display: none;
             align-items: center;
             justify-content: center;
             z-index: 100;
@@ -595,7 +595,7 @@
     <div id="canvas-container"></div>
     
     <!-- 2D Hint Icons Overlay -->
-    <div id="hints-overlay" class="absolute inset-0 pointer-events-none z-10"></div>
+    <div id="hints-overlay" class="absolute inset-0 pointer-events-none z-30"></div>
     
     <!-- Control Panel -->
     <div id="control-panel" class="absolute top-4 left-4 z-20 transition-all duration-300 w-80 max-w-90vw">
@@ -701,6 +701,19 @@
                         </div>
                     </div>
                     
+                    <!-- Path Smoothing Control -->
+                    <div class="space-y-2">
+                        <label class="block text-sm font-medium">Path Smoothing:</label>
+                        <div class="flex items-center space-x-2">
+                            <span class="text-xs w-8">Low</span>
+                            <input type="range" min="0.0" max="1.0" step="0.1" value="0.5" id="smoothing-slider" class="flex-1">
+                            <span class="text-xs w-8">High</span>
+                        </div>
+                        <div class="text-center">
+                            <span id="smoothing-display" class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">Medium smoothing</span>
+                        </div>
+                    </div>
+                    
                     <div class="flex space-x-2">
                         <button id="play-btn" class="button button-default button-sm flex items-center space-x-1 text-xs">
                             <span class="icon icon-play"></span>
@@ -720,6 +733,7 @@
                     <p><strong>💡 Hints:</strong> Click 2D icons to view information</p>
                     <p><strong>🚫 No Page Scroll:</strong> All scrolling disabled</p>
                     <p><strong>⚡ Speed Control:</strong> Adjust scrolling speed (0.1x - 3.0x)</p>
+                    <p><strong>🔄 Path Smoothing:</strong> Control how smooth the path is between points</p>
                     <p><strong>🗺️ Map Format:</strong> GLB, GLTF files supported</p>
                 </div>
             </div>
@@ -727,14 +741,14 @@
     </div>
 
     <!-- Hint Modal -->
-    <div id="hint-modal" class="hidden">
+    <div id="hint-modal">
         <div class="hint-modal-content">
             <div class="hint-modal-header">
-                <h2 id="hint-modal-title" class="hint-modal-title"></h2>
-                <p id="hint-modal-subtitle" class="hint-modal-subtitle"></p>
+                <h2 id="hint-modal-title" class="hint-modal-title">Hint Title</h2>
+                <p id="hint-modal-subtitle" class="hint-modal-subtitle">Hint Subtitle</p>
             </div>
             <div class="hint-modal-body">
-                <p id="hint-modal-text"></p>
+                <p id="hint-modal-text">Hint text content will appear here when you click on a hint icon.</p>
             </div>
             <div class="hint-modal-footer">
                 <button id="hint-modal-close-btn" class="hint-modal-close-btn">Close</button>
@@ -759,14 +773,25 @@
                 this.camera = null;
                 this.gltfLoader = null;
                 
+                // Camera system
+                this.body = null;
                 this.path = [];
-                this.currentPathPosition = 0;
+                this.curve = null;
+                this.currentProgress = 0;
+                this.velocity = 0;
                 this.isPlaying = false;
+                
+                // Camera rotation
+                this.pitch = 0;
+                this.yaw = 0;
+                this.isPointerLocked = false;
+                
                 this.hints = [];
                 this.visibleHints = [];
                 
                 // Current model
                 this.currentModel = null;
+                this.modelOffset = new THREE.Vector3(0, 0, 0);
                 
                 // Mobile-specific
                 this.isMobile = false;
@@ -774,15 +799,11 @@
                 this.gyroscopePermission = 'prompt';
                 this.gyroscopeData = { alpha: 0, beta: 0, gamma: 0 };
                 
-                // Camera controls
-                this.cameraRotation = { x: 0, y: 0 };
-                this.mouseSensitivity = 0.002;
-                this.isPointerLocked = false;
-                
                 // Settings
                 this.scrollingSpeed = 1.0;
                 this.showAllHints = false;
                 this.hintVisibilityDistance = 15;
+                this.pathSmoothing = 0.5;
                 
                 // Modal state
                 this.isModalOpen = false;
@@ -794,6 +815,11 @@
                 this.mapLoadStatus = document.getElementById('map-load-status');
                 this.hintModal = document.getElementById('hint-modal');
                 
+                // Inertia parameters
+                this.acceleration = 0.001;
+                this.deceleration = 0.95;
+                this.maxSpeed = 0.02;
+                
                 this.init();
             }
             
@@ -801,6 +827,8 @@
                 this.detectMobile();
                 this.setupEventListeners();
                 this.initThreeJS();
+                this.loadDefaultMap();
+                this.loadDefaultPath();
                 this.updateUI();
             }
             
@@ -831,6 +859,7 @@
                         <p><strong>💡 Hints:</strong> Tap 2D icons to view information</p>
                         <p><strong>🚫 No Page Scroll:</strong> All scrolling disabled</p>
                         <p><strong>⚡ Speed Control:</strong> Adjust scrolling speed (0.1x - 3.0x)</p>
+                        <p><strong>🔄 Path Smoothing:</strong> Control how smooth the path is between points</p>
                         <p><strong>🗺️ Map Format:</strong> GLB, GLTF files supported</p>
                     `;
                 }
@@ -872,6 +901,28 @@
                     this.scrollingSpeed = parseFloat(e.target.value);
                     document.getElementById('speed-display').textContent = this.scrollingSpeed + 'x speed';
                 });
+                
+                // Path smoothing slider
+                document.getElementById('smoothing-slider').addEventListener('input', (e) => {
+                    this.pathSmoothing = parseFloat(e.target.value);
+                    this.updateSmoothingDisplay();
+                    // Update path with new smoothing
+                    if (this.path.length > 0) {
+                        this.setPathFromData({ points: this.path });
+                    }
+                });
+            }
+            
+            updateSmoothingDisplay() {
+                let smoothingText;
+                if (this.pathSmoothing < 0.3) {
+                    smoothingText = "Low smoothing";
+                } else if (this.pathSmoothing < 0.7) {
+                    smoothingText = "Medium smoothing";
+                } else {
+                    smoothingText = "High smoothing";
+                }
+                document.getElementById('smoothing-display').textContent = smoothingText;
             }
             
             initThreeJS() {
@@ -879,6 +930,10 @@
                 this.scene = new THREE.Scene();
                 this.scene.background = new THREE.Color(0x87CEEB);
 
+                // Create body that moves along the path
+                this.body = new THREE.Object3D();
+                this.scene.add(this.body);
+                
                 // Camera setup
                 this.camera = new THREE.PerspectiveCamera(
                     75,
@@ -886,7 +941,11 @@
                     0.1,
                     1000
                 );
-                this.camera.position.set(0, 5, 10);
+                this.body.add(this.camera);
+                this.camera.position.set(0, 0, 0);
+                
+                // Set camera rotation order to prevent roll
+                this.camera.rotation.order = 'YXZ';
 
                 // Renderer setup
                 this.renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -907,9 +966,6 @@
                 directionalLight.castShadow = true;
                 this.scene.add(directionalLight);
 
-                // Create default scene
-                this.createDefaultScene();
-
                 // Setup controls
                 this.setupControls();
 
@@ -920,32 +976,155 @@
                 document.getElementById('loading-overlay').classList.add('hidden');
             }
             
-            createDefaultScene() {
-                // Ground
-                const groundGeometry = new THREE.PlaneGeometry(100, 100);
-                const groundMaterial = new THREE.MeshLambertMaterial({ color: 0x90EE90 });
-                const ground = new THREE.Mesh(groundGeometry, groundMaterial);
-                ground.rotation.x = -Math.PI / 2;
-                ground.receiveShadow = true;
-                this.scene.add(ground);
-
-                // Buildings
-                for (let i = 0; i < 10; i++) {
-                    const height = Math.random() * 10 + 5;
-                    const buildingGeometry = new THREE.BoxGeometry(3, height, 3);
-                    const buildingMaterial = new THREE.MeshLambertMaterial({ 
-                        color: new THREE.Color().setHSL(Math.random(), 0.5, 0.7) 
-                    });
-                    const building = new THREE.Mesh(buildingGeometry, buildingMaterial);
+            loadDefaultMap() {
+                // Load default map from map.glb
+                this.updateMapLoadStatus('Loading default map...', 'loading');
+                
+                this.gltfLoader.load(
+                    'map.glb',
                     
-                    building.position.set(
-                        (Math.random() - 0.5) * 80,
-                        height / 2,
-                        (Math.random() - 0.5) * 80
-                    );
-                    building.castShadow = true;
-                    this.scene.add(building);
+                    // onLoad callback
+                    (gltf) => {
+                        // Remove previous model if exists
+                        if (this.currentModel) {
+                            this.scene.remove(this.currentModel);
+                        }
+                        
+                        const model = gltf.scene;
+                        this.currentModel = model;
+                        
+                        // Configure the model
+                        model.traverse((child) => {
+                            if (child.isMesh) {
+                                child.castShadow = true;
+                                child.receiveShadow = true;
+                            }
+                        });
+                        
+                        // Calculate model bounding box and center
+                        const box = new THREE.Box3().setFromObject(model);
+                        const center = box.getCenter(new THREE.Vector3());
+                        const size = box.getSize(new THREE.Vector3());
+                        
+                        // Calculate the offset needed to center the model
+                        this.modelOffset = center.clone().multiplyScalar(-1);
+                        
+                        // Center the model at origin
+                        model.position.copy(this.modelOffset);
+                        
+                        // Add to scene
+                        this.scene.add(model);
+                        
+                        // Update path with new offset
+                        if (this.curve) {
+                            this.setPathFromData({ points: this.path });
+                        }
+                        
+                        // Update status
+                        this.updateMapLoadStatus(`Default map loaded successfully! Size: ${size.x.toFixed(2)} x ${size.y.toFixed(2)} x ${size.z.toFixed(2)}`, 'success');
+                    },
+                    
+                    // onProgress callback
+                    (xhr) => {
+                        if (xhr.lengthComputable) {
+                            const percentComplete = (xhr.loaded / xhr.total * 100).toFixed(2);
+                            this.updateMapLoadStatus(`Loading default map: ${percentComplete}%`, 'loading');
+                        }
+                    },
+                    
+                    // onError callback
+                    (error) => {
+                        console.error('Error loading default map:', error);
+                        this.updateMapLoadStatus('Default map not found. You can load a map manually.', 'error');
+                    }
+                );
+            }
+            
+            loadDefaultPath() {
+                // Load default path from path.json
+                fetch('path.json')
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Path file not found');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        this.setPathFromData(data);
+                    })
+                    .catch(error => {
+                        console.error('Error loading default path:', error);
+                        // Generate sample path if default path not found
+                        this.generateSamplePath();
+                    });
+            }
+            
+            setPathFromData(pathData) {
+                // Clear existing path visualization
+                if (this.pathLine) {
+                    this.scene.remove(this.pathLine);
                 }
+                
+                // Convert points to Vector3 with high precision
+                const points = pathData.points.map(p => {
+                    return new THREE.Vector3(
+                        parseFloat(p.x.toFixed(15)),
+                        parseFloat(p.y.toFixed(15)),
+                        parseFloat(p.z.toFixed(15))
+                    );
+                });
+                
+                // Apply model offset to align path with model
+                const adjustedPoints = points.map(point => 
+                    point.clone().add(this.modelOffset)
+                );
+                
+                // Create curve from points with adjustable smoothing
+                this.curve = this.createSmoothCurve(adjustedPoints);
+                
+                // Create visualization
+                const pathGeometry = new THREE.BufferGeometry().setFromPoints(this.curve.getPoints(500));
+                const pathMaterial = new THREE.LineBasicMaterial({ color: 0xffffff00 });
+                this.pathLine = new THREE.Line(pathGeometry, pathMaterial);
+                this.scene.add(this.pathLine);
+                
+                // Set initial position
+                if (points.length > 0) {
+                    const initialPoint = this.curve.getPoint(0);
+                    this.body.position.copy(initialPoint);
+                    
+                    // Look along the path
+                    const lookAtPoint = this.curve.getPoint(0.01);
+                    this.body.lookAt(lookAtPoint);
+                }
+                
+                this.updateUI();
+            }
+            
+            createSmoothCurve(points) {
+                // Check if we have enough points
+                if (points.length < 2) {
+                    console.warn('Not enough points to create curve');
+                    return null;
+                }
+                
+                // Create a CatmullRom curve with adjustable tension based on smoothing
+                const curve = new THREE.CatmullRomCurve3(points);
+                curve.closed = true;
+                
+                // Adjust curve type and tension based on smoothing value
+                if (this.pathSmoothing < 0.3) {
+                    // Low smoothing: use centripetal parameterization for tighter curves
+                    curve.curveType = 'centripetal';
+                } else if (this.pathSmoothing < 0.7) {
+                    // Medium smoothing: use chordal parameterization (default)
+                    curve.curveType = 'chordal';
+                } else {
+                    // High smoothing: use catmullrom parameterization for smoother curves
+                    curve.curveType = 'catmullrom';
+                }
+                
+                return curve;
             }
             
             setupControls() {
@@ -971,24 +1150,14 @@
                 const handleTouchMove = (event) => {
                     if (this.isModalOpen) return;
                     
-                    if (event.touches.length === 1 && this.isMobile && this.path.length > 0) {
+                    if (event.touches.length === 1 && this.isMobile && this.curve) {
                         const touch = event.touches[0];
                         const deltaY = touch.clientY - lastTouch.y;
                         
                         if (Math.abs(deltaY) > 5) {
-                            const sensitivity = 0.02 * this.scrollingSpeed;
-                            const delta = deltaY > 0 ? sensitivity : -sensitivity;
-                            
-                            this.currentPathPosition += delta;
-                            
-                            if (this.currentPathPosition >= this.path.length) {
-                                this.currentPathPosition = 0;
-                            } else if (this.currentPathPosition < 0) {
-                                this.currentPathPosition = this.path.length - 1;
-                            }
-                            
-                            this.updatePathProgress();
-                            this.updateCameraPosition();
+                            const direction = deltaY > 0 ? 1 : -1;
+                            this.velocity += direction * this.acceleration;
+                            this.velocity = Math.max(-this.maxSpeed, Math.min(this.maxSpeed, this.velocity));
                             
                             lastTouch = { x: touch.clientX, y: touch.clientY };
                         }
@@ -1001,52 +1170,39 @@
                     if (this.isModalOpen) return;
                     if (!this.isMobile && !this.isPointerLocked) return;
 
-                    const deltaX = event.movementX * this.mouseSensitivity;
-                    const deltaY = event.movementY * this.mouseSensitivity;
+                    const deltaX = event.movementX * 0.002;
+                    const deltaY = event.movementY * 0.002;
 
-                    this.cameraRotation.y -= deltaX;
-                    this.cameraRotation.x -= deltaY;
-                    this.cameraRotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, this.cameraRotation.x));
+                    this.yaw -= deltaX;
+                    this.pitch -= deltaY;
+                    this.pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, this.pitch));
 
-                    if (this.camera && !this.isMobile) {
-                        this.camera.rotation.order = 'YXZ';
-                        this.camera.rotation.y = this.cameraRotation.y;
-                        this.camera.rotation.x = this.cameraRotation.x;
-                    }
+                    this.updateCameraRotation();
                 };
 
                 const handleClick = () => {
                     if (this.isModalOpen) return;
                     if (!this.isMobile && !this.isPointerLocked) {
-                        this.canvasContainer.requestPointerLock();
+                        this.renderer.domElement.requestPointerLock();
                     }
                 };
 
                 const handlePointerLockChange = () => {
-                    this.isPointerLocked = document.pointerLockElement === this.canvasContainer;
-                    if (this.canvasContainer && !this.isMobile) {
-                        this.canvasContainer.style.cursor = this.isPointerLocked ? 'none' : 'crosshair';
+                    this.isPointerLocked = document.pointerLockElement === this.renderer.domElement;
+                    if (this.renderer.domElement && !this.isMobile) {
+                        this.renderer.domElement.style.cursor = this.isPointerLocked ? 'none' : 'crosshair';
                     }
                 };
 
                 const handleWheel = (event) => {
                     if (this.isModalOpen) return;
-                    if (this.isMobile) return;
+                    if (this.isMobile || !this.curve) return;
                     
                     event.preventDefault();
-                    if (this.path.length === 0) return;
-
-                    const delta = (event.deltaY > 0 ? 0.5 : -0.5) * this.scrollingSpeed;
-                    this.currentPathPosition += delta;
                     
-                    if (this.currentPathPosition >= this.path.length) {
-                        this.currentPathPosition = 0;
-                    } else if (this.currentPathPosition < 0) {
-                        this.currentPathPosition = this.path.length - 1;
-                    }
-                    
-                    this.updatePathProgress();
-                    this.updateCameraPosition();
+                    const direction = event.deltaY > 0 ? 1 : -1;
+                    this.velocity += direction * this.acceleration * this.scrollingSpeed;
+                    this.velocity = Math.max(-this.maxSpeed, Math.min(this.maxSpeed, this.velocity));
                 };
 
                 // Gyroscope handling
@@ -1083,8 +1239,8 @@
                 });
                 
                 if (this.isMobile) {
-                    this.canvasContainer.addEventListener('touchstart', handleTouchStart, { passive: false });
-                    this.canvasContainer.addEventListener('touchmove', handleTouchMove, { passive: false });
+                    this.renderer.domElement.addEventListener('touchstart', handleTouchStart, { passive: false });
+                    this.renderer.domElement.addEventListener('touchmove', handleTouchMove, { passive: false });
                     
                     if (this.gyroscopeSupported && this.gyroscopePermission === 'granted') {
                         window.addEventListener('deviceorientation', handleDeviceOrientation);
@@ -1092,9 +1248,9 @@
                 } else {
                     document.addEventListener('mousemove', handleMouseMove);
                     document.addEventListener('pointerlockchange', handlePointerLockChange);
-                    this.canvasContainer.addEventListener('click', handleClick);
-                    this.canvasContainer.addEventListener('wheel', handleWheel);
-                    this.canvasContainer.style.cursor = 'crosshair';
+                    this.renderer.domElement.addEventListener('click', handleClick);
+                    this.renderer.domElement.addEventListener('wheel', handleWheel);
+                    this.renderer.domElement.style.cursor = 'crosshair';
                 }
 
                 // Window resize
@@ -1106,41 +1262,68 @@
                 });
             }
             
+            updateCameraRotation() {
+                // Apply rotation to camera
+                this.camera.rotation.y = this.yaw;
+                this.camera.rotation.x = this.pitch;
+                this.camera.rotation.z = 0; // Prevent roll
+            }
+            
+            updateBodyPosition() {
+                if (!this.curve) return;
+                
+                // Update progress with inertia
+                this.currentProgress += this.velocity;
+                
+                // Loop progress (path is always closed)
+                if (this.currentProgress > 1) this.currentProgress -= 1;
+                if (this.currentProgress < 0) this.currentProgress += 1;
+                
+                // Get position on curve
+                const newPosition = this.curve.getPoint(this.currentProgress);
+                this.body.position.copy(newPosition);
+                
+                // Get direction of movement (tangent to curve)
+                const tangent = this.curve.getTangent(this.currentProgress);
+                
+                // Orient body along the path
+                this.body.lookAt(this.body.position.clone().add(tangent));
+                
+                // Apply deceleration (inertia)
+                this.velocity *= this.deceleration;
+                
+                // Stop movement if velocity becomes very small
+                if (Math.abs(this.velocity) < 0.0001) {
+                    this.velocity = 0;
+                }
+            }
+            
             animate() {
                 requestAnimationFrame(() => this.animate());
                 
-                if (this.isPlaying && this.path.length > 0 && !this.isModalOpen) {
-                    this.currentPathPosition += 0.02 * this.scrollingSpeed;
+                // Update body position along path only if we have a valid curve
+                if (this.curve) {
+                    this.updateBodyPosition();
                     
-                    if (this.currentPathPosition >= this.path.length) {
-                        this.currentPathPosition = 0;
+                    // Auto-play if enabled
+                    if (this.isPlaying && !this.isModalOpen) {
+                        this.velocity += 0.0005 * this.scrollingSpeed;
+                        this.velocity = Math.min(this.maxSpeed, this.velocity);
                     }
                     
+                    // Update progress display
                     this.updatePathProgress();
-                    this.updateCameraPosition();
                 }
-
+                
+                // Update hint visibility
                 this.updateHintVisibility();
+                
+                // Render scene
                 this.renderer.render(this.scene, this.camera);
             }
             
-            updateCameraPosition() {
-                if (this.path.length === 0 || !this.camera) return;
-
-                const position = this.currentPathPosition;
-                const index = Math.floor(position);
-                const nextIndex = (index + 1) % this.path.length;
-                const t = position - index;
-
-                const currentPoint = this.path[index];
-                const nextPoint = this.path[nextIndex];
-
-                const interpolatedPosition = new THREE.Vector3().lerpVectors(currentPoint, nextPoint, t);
-                this.camera.position.copy(interpolatedPosition);
-            }
-            
             updatePathProgress() {
-                const progress = (this.currentPathPosition / this.path.length) * 100;
+                const progress = (this.currentProgress % 1) * 100;
                 document.getElementById('progress-percent').textContent = Math.round(progress);
                 document.getElementById('progress-fill').style.width = progress + '%';
             }
@@ -1160,7 +1343,6 @@
             updateHintVisibility() {
                 if (!this.camera || this.hints.length === 0 || this.isModalOpen) return;
 
-                const newVisibleHints = [];
                 this.hintsOverlay.innerHTML = '';
 
                 this.hints.forEach((hint, index) => {
@@ -1236,17 +1418,24 @@
                             }
                         });
                         
-                        // Center the model
+                        // Calculate model bounding box and center
                         const box = new THREE.Box3().setFromObject(model);
                         const center = box.getCenter(new THREE.Vector3());
                         const size = box.getSize(new THREE.Vector3());
                         
-                        model.position.x -= center.x;
-                        model.position.y -= center.y;
-                        model.position.z -= center.z;
+                        // Calculate the offset needed to center the model
+                        this.modelOffset = center.clone().multiplyScalar(-1);
+                        
+                        // Center the model at origin
+                        model.position.copy(this.modelOffset);
                         
                         // Add to scene
                         this.scene.add(model);
+                        
+                        // Update path with new offset
+                        if (this.curve) {
+                            this.setPathFromData({ points: this.path });
+                        }
                         
                         // Update status
                         this.updateMapLoadStatus(`Model loaded successfully! Size: ${size.x.toFixed(2)} x ${size.y.toFixed(2)} x ${size.z.toFixed(2)}`, 'success');
@@ -1267,9 +1456,6 @@
                     (error) => {
                         console.error('Error loading model:', error);
                         this.updateMapLoadStatus('Error loading model. Check console for details.', 'error');
-                        
-                        // Create fallback cube
-                        this.createFallbackCube();
                     }
                 );
             }
@@ -1280,25 +1466,6 @@
                 this.mapLoadStatus.classList.remove('hidden');
             }
             
-            createFallbackCube() {
-                if (this.currentModel) {
-                    this.scene.remove(this.currentModel);
-                }
-                
-                const geometry = new THREE.BoxGeometry(2, 2, 2);
-                const material = new THREE.MeshStandardMaterial({ 
-                    color: 0x4a6fa5,
-                    metalness: 0.3,
-                    roughness: 0.4
-                });
-                const cube = new THREE.Mesh(geometry, material);
-                cube.castShadow = true;
-                this.scene.add(cube);
-                
-                this.currentModel = cube;
-                this.updateMapLoadStatus('Fallback cube loaded', 'success');
-            }
-            
             handlePathLoad(event) {
                 const file = event.target.files[0];
                 if (!file) return;
@@ -1307,14 +1474,9 @@
                 reader.onload = (e) => {
                     try {
                         const pathData = JSON.parse(e.target.result);
-                        if (Array.isArray(pathData) && pathData.length > 0) {
-                            this.path = pathData.map(point => new THREE.Vector3(point.x, point.y, point.z));
-                            this.currentPathPosition = 0;
-                            this.updatePathProgress();
-                            this.updateUI();
-                            this.updateCameraPosition();
-                            alert(`Camera path loaded with ${pathData.length} points!`);
-                        }
+                        this.path = pathData.points; // Store original points
+                        this.setPathFromData(pathData);
+                        alert(`Camera path loaded with ${pathData.points.length} points!`);
                     } catch (error) {
                         alert('Error loading path file.');
                     }
@@ -1344,7 +1506,12 @@
             loadHints(hintData) {
                 this.hints = [];
                 hintData.forEach((hint) => {
-                    const position = new THREE.Vector3(hint.position.x, hint.position.y, hint.position.z);
+                    const position = new THREE.Vector3(
+                        hint.position.x,
+                        hint.position.y,
+                        hint.position.z
+                    ).add(this.modelOffset);
+                    
                     this.hints.push({
                         position: position,
                         title: hint.title,
@@ -1356,20 +1523,20 @@
             }
             
             generateSamplePath() {
-                const samplePath = [];
+                const samplePath = {
+                    points: []
+                };
+                
                 for (let i = 0; i <= 100; i++) {
                     const t = i / 100;
                     const x = Math.cos(t * Math.PI * 4) * 20;
                     const z = Math.sin(t * Math.PI * 4) * 20;
                     const y = 5 + Math.sin(t * Math.PI * 8) * 3;
-                    samplePath.push({ x, y, z });
+                    samplePath.points.push({ x, y, z });
                 }
                 
-                this.path = samplePath.map(point => new THREE.Vector3(point.x, point.y, point.z));
-                this.currentPathPosition = 0;
-                this.updatePathProgress();
-                this.updateUI();
-                this.updateCameraPosition();
+                this.path = samplePath.points; // Store original points
+                this.setPathFromData(samplePath);
                 alert('Sample spiral path generated!');
             }
             
@@ -1386,14 +1553,14 @@
                         position: { x: -15, y: 6, z: 5 },
                         title: "Building Complex",
                         subtitle: "Modern Architecture",
-                        text: "These buildings represent modern architectural design.",
+                        text: "These buildings represent modern architectural design with sustainable materials and energy-efficient systems.",
                         icon: "eye"
                     },
                     {
                         position: { x: 0, y: 12, z: -20 },
                         title: "Scenic Viewpoint",
                         subtitle: "Best view in the area",
-                        text: "From this position, you can see the entire layout.",
+                        text: "From this position, you can see the entire layout of the virtual environment. Take a moment to appreciate the scale and design.",
                         icon: "map-pin"
                     }
                 ];
@@ -1404,7 +1571,7 @@
             
             // UI methods
             togglePlay() {
-                if (this.path.length === 0) {
+                if (!this.curve) {
                     alert('Please load a camera path first!');
                     return;
                 }
@@ -1421,13 +1588,14 @@
             }
             
             resetCamera() {
-                if (this.path.length === 0) return;
+                if (!this.curve) return;
                 
-                this.currentPathPosition = 0;
+                this.currentProgress = 0;
+                this.velocity = 0;
                 this.updatePathProgress();
                 this.isPlaying = false;
                 this.togglePlay(); // Update button state
-                this.updateCameraPosition();
+                this.updateBodyPosition();
             }
             
             toggleShowAllHints() {
@@ -1452,13 +1620,13 @@
                 // Pause the game
                 this.isModalOpen = true;
                 
-                // Set modal content
+                // Set modal content with the hint data
                 document.getElementById('hint-modal-title').textContent = hint.title;
                 document.getElementById('hint-modal-subtitle').textContent = hint.subtitle || '';
                 document.getElementById('hint-modal-text').textContent = hint.text;
                 
                 // Show modal
-                this.hintModal.classList.remove('hidden');
+                this.hintModal.style.display = 'flex';
             }
             
             closeHintModal() {
@@ -1466,7 +1634,7 @@
                 this.isModalOpen = false;
                 
                 // Hide modal
-                this.hintModal.classList.add('hidden');
+                this.hintModal.style.display = 'none';
             }
             
             async requestGyroscopePermission() {
@@ -1490,11 +1658,14 @@
             
             updateUI() {
                 // Show/hide path controls based on whether we have a path
-                if (this.path.length > 0) {
+                if (this.curve) {
                     document.getElementById('path-controls').classList.remove('hidden');
                 } else {
                     document.getElementById('path-controls').classList.add('hidden');
                 }
+                
+                // Update smoothing display
+                this.updateSmoothingDisplay();
             }
         }
 
