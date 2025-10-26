@@ -949,29 +949,29 @@
                 // Renderer setup
                 this.renderer = new THREE.WebGLRenderer({ antialias: true });
                 this.renderer.setSize(this.canvasContainer.clientWidth, this.canvasContainer.clientHeight);
-                this.renderer.shadowMap.enabled = true;
-                this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                //this.renderer.shadowMap.enabled = true;
+                //this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
                 this.canvasContainer.appendChild(this.renderer.domElement);
 
                 // GLTF Loader
                 this.gltfLoader = new GLTFLoader();
 
                 // Lighting
-                const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
-                this.scene.add(ambientLight);
+                //const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+                //this.scene.add(ambientLight);
 
-                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-                directionalLight.position.set(50, 50, 50);
-                directionalLight.castShadow = true;
-                directionalLight.shadow.mapSize.width = 1024;
-directionalLight.shadow.mapSize.height = 1024;
-directionalLight.shadow.camera.near = 0.1;
-directionalLight.shadow.camera.far = 500;
-directionalLight.shadow.camera.left = -500;
-directionalLight.shadow.camera.right = 500;
-directionalLight.shadow.camera.top = 20;
-directionalLight.shadow.camera.bottom = -2
-                this.scene.add(directionalLight);
+                //const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+              //  directionalLight.position.set(50, 50, 50);
+                //directionalLight.castShadow = true;
+                //directionalLight.shadow.mapSize.width = 1024;
+//directionalLight.shadow.mapSize.height = 1024;
+//directionalLight.shadow.camera.near = 0.1;
+//directionalLight.shadow.camera.far = 500;
+//directionalLight.shadow.camera.left = -500;
+//directionalLight.shadow.camera.right = 500;
+//directionalLight.shadow.camera.top = 20;
+//directionalLight.shadow.camera.bottom = -2
+                //this.scene.add(directionalLight);
 
                 // Setup controls
                 this.setupControls();
