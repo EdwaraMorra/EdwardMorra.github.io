@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>3D Virtual Tour</title>
-    
+
     <!-- Three.js Module Import -->
     <script type="importmap">
         {
@@ -14,20 +14,20 @@
             }
         }
     </script>
-    
+
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             overflow: hidden;
             background: #000;
         }
-        
+
         #canvas-container {
             width: 100vw;
             height: 100vh;
@@ -35,7 +35,7 @@
             top: 0;
             left: 0;
         }
-        
+
         /* UI Components Styles */
         .card {
             background: white;
@@ -43,26 +43,26 @@
             border: 1px solid #e5e7eb;
             box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
         }
-        
+
         .card-header {
             padding: 1.5rem;
             display: flex;
             flex-direction: column;
             gap: 0.5rem;
         }
-        
+
         .card-title {
             font-size: 1.125rem;
             font-weight: 600;
             line-height: 1;
             letter-spacing: -0.025em;
         }
-        
+
         .card-content {
             padding: 1.5rem;
             padding-top: 0;
         }
-        
+
         .button {
             display: inline-flex;
             align-items: center;
@@ -75,352 +75,352 @@
             cursor: pointer;
             gap: 0.5rem;
         }
-        
+
         .button:disabled {
             opacity: 0.5;
             pointer-events: none;
         }
-        
+
         .button-default {
             background: #2563eb;
             color: white;
         }
-        
+
         .button-default:hover {
             background: #1d4ed8;
         }
-        
+
         .button-destructive {
             background: #dc2626;
             color: white;
         }
-        
+
         .button-destructive:hover {
             background: #b91c1c;
         }
-        
+
         .button-outline {
             background: transparent;
             border: 1px solid #d1d5db;
             color: inherit;
         }
-        
+
         .button-outline:hover {
             background: #f9fafb;
         }
-        
+
         .button-ghost {
             background: transparent;
             color: inherit;
             border: none;
         }
-        
+
         .button-ghost:hover {
             background: #f9fafb;
         }
-        
+
         .button-sm {
             height: 2.25rem;
             padding: 0 0.75rem;
             font-size: 0.875rem;
         }
-        
+
         .button-default-size {
             height: 2.5rem;
             padding: 0 1rem;
         }
-        
+
         .space-y-2 > * + * {
             margin-top: 0.5rem;
         }
-        
+
         .space-y-3 > * + * {
             margin-top: 0.75rem;
         }
-        
+
         .space-x-2 > * + * {
             margin-left: 0.5rem;
         }
-        
+
         .flex {
             display: flex;
         }
-        
+
         .items-center {
             align-items: center;
         }
-        
+
         .justify-between {
             justify-content: space-between;
         }
-        
+
         .w-full {
             width: 100%;
         }
-        
+
         .w-80 {
             width: 20rem;
         }
-        
+
         .h-8 {
             height: 2rem;
         }
-        
+
         .h-9 {
             height: 2.25rem;
         }
-        
+
         .h-10 {
             height: 2.5rem;
         }
-        
+
         .w-8 {
             width: 2rem;
         }
-        
+
         .p-0 {
             padding: 0;
         }
-        
+
         .p-2 {
             padding: 0.5rem;
         }
-        
+
         .p-4 {
             padding: 1rem;
         }
-        
+
         .text-sm {
             font-size: 0.875rem;
         }
-        
+
         .text-xs {
             font-size: 0.75rem;
         }
-        
+
         .text-lg {
             font-size: 1.125rem;
         }
-        
+
         .text-xl {
             font-size: 1.25rem;
         }
-        
+
         .font-medium {
             font-weight: 500;
         }
-        
+
         .font-semibold {
             font-weight: 600;
         }
-        
+
         .text-gray-600 {
             color: #4b5563;
         }
-        
+
         .text-gray-800 {
             color: #1f2937;
         }
-        
+
         .text-blue-600 {
             color: #2563eb;
         }
-        
+
         .text-blue-800 {
             color: #1e40af;
         }
-        
+
         .bg-white {
             background: white;
         }
-        
+
         .bg-blue-50 {
             background: #eff6ff;
         }
-        
+
         .bg-blue-100 {
             background: #dbeafe;
         }
-        
+
         .bg-gray-200 {
             background: #e5e7eb;
         }
-        
+
         .bg-blue-600 {
             background: #2563eb;
         }
-        
+
         .bg-black {
             background: black;
         }
-        
+
         .bg-opacity-50 {
             opacity: 0.5;
         }
-        
+
         .bg-opacity-90 {
             opacity: 0.9;
         }
-        
+
         .rounded {
             border-radius: 0.25rem;
         }
-        
+
         .rounded-full {
             border-radius: 9999px;
         }
-        
+
         .rounded-lg {
             border-radius: 0.5rem;
         }
-        
+
         .border {
             border: 1px solid #e5e7eb;
         }
-        
+
         .border-2 {
             border-width: 2px;
         }
-        
+
         .border-blue-200 {
             border-color: #bfdbfe;
         }
-        
+
         .border-blue-500 {
             border-color: #3b82f6;
         }
-        
+
         .shadow-lg {
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
         }
-        
+
         .absolute {
             position: absolute;
         }
-        
+
         .relative {
             position: relative;
         }
-        
+
         .inset-0 {
             top: 0;
             right: 0;
             bottom: 0;
             left: 0;
         }
-        
+
         .top-4 {
             top: 1rem;
         }
-        
+
         .left-4 {
             left: 1rem;
         }
-        
+
         .z-10 {
             z-index: 10;
         }
-        
+
         .z-20 {
             z-index: 20;
         }
-        
+
         .z-30 {
             z-index: 30;
         }
-        
+
         .z-40 {
             z-index: 40;
         }
-        
+
         .pointer-events-none {
             pointer-events: none;
         }
-        
+
         .pointer-events-auto {
             pointer-events: auto;
         }
-        
+
         .cursor-pointer {
             cursor: pointer;
         }
-        
+
         .transform {
             transform: translate(var(--tw-translate-x), var(--tw-translate-y));
         }
-        
+
         .-translate-x-1-2 {
             transform: translateX(-50%);
         }
-        
+
         .-translate-y-1-2 {
             transform: translateY(-50%);
         }
-        
+
         .transition-all {
             transition: all 0.2s;
         }
-        
+
         .duration-200 {
             transition-duration: 200ms;
         }
-        
+
         .duration-300 {
             transition-duration: 300ms;
         }
-        
+
         .hidden {
             display: none;
         }
-        
+
         .block {
             display: block;
         }
-        
+
         .flex-1 {
             flex: 1;
         }
-        
+
         .max-w-90vw {
             max-width: 90vw;
         }
-        
+
         .max-w-sm {
             max-width: 24rem;
         }
-        
+
         .h-2 {
             height: 0.5rem;
         }
-        
+
         .h-screen {
             height: 100vh;
         }
-        
+
         .touch-none {
             touch-action: none;
         }
-        
+
         .overflow-hidden {
             overflow: hidden;
         }
-        
+
         .leading-relaxed {
             line-height: 1.625;
         }
-        
+
         .mt-1 {
             margin-top: 0.25rem;
         }
-        
+
         .mb-4 {
             margin-bottom: 1rem;
         }
-        
+
         .hover-bg-opacity-100:hover {
             opacity: 1;
         }
-        
+
         input[type="range"] {
             width: 100%;
             height: 0.375rem;
@@ -428,7 +428,7 @@
             background: #d1d5db;
             outline: none;
         }
-        
+
         input[type="range"]::-webkit-slider-thumb {
             appearance: none;
             width: 1rem;
@@ -437,7 +437,7 @@
             background: #2563eb;
             cursor: pointer;
         }
-        
+
         input[type="range"]::-moz-range-thumb {
             width: 1rem;
             height: 1rem;
@@ -446,77 +446,77 @@
             cursor: pointer;
             border: none;
         }
-        
+
         .progress-bar {
             width: 100%;
             background: #e5e7eb;
             border-radius: 9999px;
             overflow: hidden;
         }
-        
+
         .progress-fill {
             height: 100%;
             background: #2563eb;
             transition: width 0.2s;
         }
-        
+
         .status-loading {
             background: rgba(255, 193, 7, 0.2);
             color: #ffa000;
             border-left: 4px solid #ffc107;
         }
-        
+
         .status-success {
             background: rgba(76, 175, 80, 0.2);
             color: #4caf50;
             border-left: 4px solid #4caf50;
         }
-        
+
         .status-error {
             background: rgba(244, 67, 54, 0.2);
             color: #f44336;
             border-left: 4px solid #f44336;
         }
-        
+
         /* Simple icon styles */
         .icon {
             width: 1rem;
             height: 1rem;
             display: inline-block;
         }
-        
+
         .icon-upload::before {
             content: '📤';
         }
-        
+
         .icon-rotate-ccw::before {
             content: '🔄';
         }
-        
+
         .icon-play::before {
             content: '▶️';
         }
-        
+
         .icon-pause::before {
             content: '⏸️';
         }
-        
+
         .icon-eye::before {
             content: '👁️';
         }
-        
+
         .icon-x::before {
             content: '❌';
         }
-        
+
         .icon-map-pin::before {
             content: '📍';
         }
-        
+
         .icon-chevron-up::before {
             content: '↑';
         }
-        
+
         .icon-chevron-down::before {
             content: '↓';
         }
@@ -593,10 +593,10 @@
 </head>
 <body>
     <div id="canvas-container"></div>
-    
+
     <!-- 2D Hint Icons Overlay -->
     <div id="hints-overlay" class="absolute inset-0 pointer-events-none z-30"></div>
-    
+
     <!-- Control Panel -->
     <div id="control-panel" class="absolute top-4 left-4 z-20 transition-all duration-300 w-80 max-w-90vw">
         <div class="card relative">
@@ -608,7 +608,7 @@
                     </button>
                 </div>
             </div>
-            
+
             <div id="panel-content" class="card-content space-y-3">
                 <!-- Mobile gyroscope permission -->
                 <div id="gyro-prompt" class="space-y-2 hidden">
@@ -688,7 +688,7 @@
                     <div class="progress-bar">
                         <div id="progress-fill" class="progress-fill" style="width: 0%"></div>
                     </div>
-                    
+
                     <div class="space-y-2">
                         <label class="block text-sm font-medium">Scrolling Speed:</label>
                         <div class="flex items-center space-x-2">
@@ -700,7 +700,7 @@
                             <span id="speed-display" class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">1.0x speed</span>
                         </div>
                     </div>
-                    
+
                     <!-- Path Smoothing Control -->
                     <div class="space-y-2">
                         <label class="block text-sm font-medium">Path Smoothing:</label>
@@ -713,7 +713,7 @@
                             <span id="smoothing-display" class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">Medium smoothing</span>
                         </div>
                     </div>
-                    
+
                     <div class="flex space-x-2">
                         <button id="play-btn" class="button button-default button-sm flex items-center space-x-1 text-xs">
                             <span class="icon icon-play"></span>
@@ -772,7 +772,7 @@
                 this.renderer = null;
                 this.camera = null;
                 this.gltfLoader = null;
-                
+
                 // Camera system
                 this.body = null;
                 this.path = [];
@@ -780,49 +780,49 @@
                 this.currentProgress = 0;
                 this.velocity = 0;
                 this.isPlaying = false;
-                
+
                 // Camera rotation
                 this.pitch = 0;
                 this.yaw = 0;
                 this.isPointerLocked = false;
-                
+
                 this.hints = [];
                 this.visibleHints = [];
-                
+
                 // Current model
                 this.currentModel = null;
                 this.modelOffset = new THREE.Vector3(0, 0, 0);
-                
+
                 // Mobile-specific
                 this.isMobile = false;
                 this.gyroscopeSupported = false;
                 this.gyroscopePermission = 'prompt';
                 this.gyroscopeData = { alpha: 0, beta: 0, gamma: 0 };
-                
+
                 // Settings
                 this.scrollingSpeed = 1.0;
                 this.showAllHints = false;
                 this.hintVisibilityDistance = 15;
                 this.pathSmoothing = 0.5;
-                
+
                 // Modal state
                 this.isModalOpen = false;
-                
+
                 // DOM elements
                 this.canvasContainer = document.getElementById('canvas-container');
                 this.hintsOverlay = document.getElementById('hints-overlay');
                 this.controlPanel = document.getElementById('control-panel');
                 this.mapLoadStatus = document.getElementById('map-load-status');
                 this.hintModal = document.getElementById('hint-modal');
-                
+
                 // Inertia parameters
                 this.acceleration = 0.0005;
                 this.deceleration = 0.95;
                 this.maxSpeed = 0.02;
-                
+
                 this.init();
             }
-            
+
             init() {
                 this.detectMobile();
                 this.setupEventListeners();
@@ -830,11 +830,11 @@
                 this.loadDefaultMap();
                 this.updateUI();
             }
-            
+
             detectMobile() {
                 this.isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
                               (window.innerWidth <= 768);
-                
+
                 if (this.isMobile && 'DeviceOrientationEvent' in window) {
                     this.gyroscopeSupported = true;
                     if (typeof DeviceOrientationEvent.requestPermission === 'function') {
@@ -843,13 +843,13 @@
                         this.gyroscopePermission = 'granted';
                     }
                 }
-                
+
                 // Update UI for mobile
                 if (this.isMobile) {
                     document.getElementById('panel-title').textContent += ' 📱';
                     document.getElementById('gyro-prompt').classList.remove('hidden');
                     document.getElementById('mobile-status').classList.remove('hidden');
-                    
+
                     // Update instructions for mobile
                     const instructions = document.querySelector('.text-xs.text-gray-600');
                     instructions.innerHTML = `
@@ -863,7 +863,7 @@
                     `;
                 }
             }
-            
+
             setupEventListeners() {
                 // File uploads
                 document.getElementById('load-map-btn').addEventListener('click', () => {
@@ -875,11 +875,11 @@
                 document.getElementById('load-hints-btn').addEventListener('click', () => {
                     document.getElementById('hint-upload').click();
                 });
-                
+
                 document.getElementById('map-upload').addEventListener('change', (e) => this.handleMapLoad(e));
                 document.getElementById('path-upload').addEventListener('change', (e) => this.handlePathLoad(e));
                 document.getElementById('hint-upload').addEventListener('change', (e) => this.handleHintLoad(e));
-                
+
                 // Buttons
                 document.getElementById('sample-path-btn').addEventListener('click', () => this.generateSamplePath());
                 document.getElementById('sample-hints-btn').addEventListener('click', () => this.generateSampleHints());
@@ -889,18 +889,18 @@
                 document.getElementById('reset-btn').addEventListener('click', () => this.resetCamera());
                 document.getElementById('collapse-btn').addEventListener('click', () => this.toggleUICollapse());
                 document.getElementById('hint-modal-close-btn').addEventListener('click', () => this.closeHintModal());
-                
+
                 // Sliders
                 document.getElementById('hint-distance-slider').addEventListener('input', (e) => {
                     this.hintVisibilityDistance = parseInt(e.target.value);
                     document.getElementById('hint-distance-value').textContent = this.hintVisibilityDistance;
                 });
-                
+
                 document.getElementById('speed-slider').addEventListener('input', (e) => {
                     this.scrollingSpeed = parseFloat(e.target.value);
                     document.getElementById('speed-display').textContent = this.scrollingSpeed + 'x speed';
                 });
-                
+
                 // Path smoothing slider
                 document.getElementById('smoothing-slider').addEventListener('input', (e) => {
                     this.pathSmoothing = parseFloat(e.target.value);
@@ -911,7 +911,7 @@
                     }
                 });
             }
-            
+
             updateSmoothingDisplay() {
                 let smoothingText;
                 if (this.pathSmoothing < 0.3) {
@@ -923,7 +923,7 @@
                 }
                 document.getElementById('smoothing-display').textContent = smoothingText;
             }
-            
+
             initThreeJS() {
                 // Scene setup
                 this.scene = new THREE.Scene();
@@ -932,7 +932,7 @@
                 // Create body that moves along the path
                 this.body = new THREE.Object3D();
                 this.scene.add(this.body);
-                
+
                 // Camera setup
                 this.camera = new THREE.PerspectiveCamera(
                     75,
@@ -942,7 +942,7 @@
                 );
                 this.body.add(this.camera);
                 this.camera.position.set(0, 0, 0);
-                
+
                 // Set camera rotation order to prevent roll
                 this.camera.rotation.order = 'YXZ';
 
@@ -963,6 +963,14 @@
                 const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
                 directionalLight.position.set(50, 50, 50);
                 directionalLight.castShadow = true;
+                directionalLight.shadow.mapSize.width = 1024;
+directionalLight.shadow.mapSize.height = 1024;
+directionalLight.shadow.camera.near = 0.1;
+directionalLight.shadow.camera.far = 500;
+directionalLight.shadow.camera.left = -500;
+directionalLight.shadow.camera.right = 500;
+directionalLight.shadow.camera.top = 20;
+directionalLight.shadow.camera.bottom = -2
                 this.scene.add(directionalLight);
 
                 // Setup controls
@@ -974,24 +982,24 @@
                 // Hide loading overlay
                 document.getElementById('loading-overlay').classList.add('hidden');
             }
-            
+
             loadDefaultMap() {
                 // Load default map from map.glb
                 this.updateMapLoadStatus('Loading default map...', 'loading');
-                
+
                 this.gltfLoader.load(
                     'map.glb',
-                    
+
                     // onLoad callback
                     (gltf) => {
                         // Remove previous model if exists
                         if (this.currentModel) {
                             this.scene.remove(this.currentModel);
                         }
-                        
+
                         const model = gltf.scene;
                         this.currentModel = model;
-                        
+
                         // Configure the model
                         model.traverse((child) => {
                             if (child.isMesh) {
@@ -999,28 +1007,28 @@
                                 child.receiveShadow = true;
                             }
                         });
-                        
+
                         // Calculate model bounding box and center
                         const box = new THREE.Box3().setFromObject(model);
                         const center = box.getCenter(new THREE.Vector3());
                         const size = box.getSize(new THREE.Vector3());
-                        
+
                         // Calculate the offset needed to center the model
                         this.modelOffset = center.clone().multiplyScalar(-1);
-                        
+
                         // Center the model at origin
                         model.position.copy(this.modelOffset);
-                        
+
                         // Add to scene
                         this.scene.add(model);
-                        
+
                         // Load default path after map is loaded
                         this.loadDefaultPath();
-                        
+
                         // Update status
                         this.updateMapLoadStatus(`Default map loaded successfully! Size: ${size.x.toFixed(2)} x ${size.y.toFixed(2)} x ${size.z.toFixed(2)}`, 'success');
                     },
-                    
+
                     // onProgress callback
                     (xhr) => {
                         if (xhr.lengthComputable) {
@@ -1028,7 +1036,7 @@
                             this.updateMapLoadStatus(`Loading default map: ${percentComplete}%`, 'loading');
                         }
                     },
-                    
+
                     // onError callback
                     (error) => {
                         console.error('Error loading default map:', error);
@@ -1038,7 +1046,7 @@
                     }
                 );
             }
-            
+
             loadDefaultPath() {
                 // Load default path from path.json
                 fetch('path.json')
@@ -1057,13 +1065,13 @@
                         this.generateSamplePath();
                     });
             }
-            
+
             setPathFromData(pathData) {
                 // Clear existing path visualization
                 if (this.pathLine) {
                     this.scene.remove(this.pathLine);
                 }
-                
+
                 // Convert points to Vector3 with high precision
                 const points = pathData.points.map(p => {
                     return new THREE.Vector3(
@@ -1072,51 +1080,51 @@
                         parseFloat(p.z.toFixed(15))
                     );
                 });
-                
+
                 // Apply model offset to align path with model
-                const adjustedPoints = points.map(point => 
+                const adjustedPoints = points.map(point =>
                     point.clone().add(this.modelOffset)
                 );
-                
+
                 // Create curve from points with adjustable smoothing
                 this.curve = this.createSmoothCurve(adjustedPoints);
-                
+
                 // Check if curve was created successfully
                 if (!this.curve) {
                     console.error('Failed to create path curve');
                     return;
                 }
-                
+
                 // Create visualization
                 const pathGeometry = new THREE.BufferGeometry().setFromPoints(this.curve.getPoints(500));
                 const pathMaterial = new THREE.LineBasicMaterial({ color: 0x00ff00 });
                 this.pathLine = new THREE.Line(pathGeometry, pathMaterial);
-                this.scene.add(this.pathLine);
-                
+                  // this.scene.add(this.pathLine);
+
                 // Set initial position
                 if (points.length > 0) {
                     const initialPoint = this.curve.getPoint(0);
                     this.body.position.copy(initialPoint);
-                    
+
                     // Look along the path
                     const lookAtPoint = this.curve.getPoint(0.01);
                     this.body.lookAt(lookAtPoint);
                 }
-                
+
                 this.updateUI();
             }
-            
+
             createSmoothCurve(points) {
                 // Check if we have enough points
                 if (points.length < 2) {
                     console.warn('Not enough points to create curve');
                     return null;
                 }
-                
+
                 // Create a CatmullRom curve with adjustable tension based on smoothing
                 const curve = new THREE.CatmullRomCurve3(points);
                 curve.closed = true;
-                
+
                 // Adjust curve type and tension based on smoothing value
                 if (this.pathSmoothing < 0.3) {
                     // Low smoothing: use centripetal parameterization for tighter curves
@@ -1128,10 +1136,10 @@
                     // High smoothing: use catmullrom parameterization for smoother curves
                     curve.curveType = 'catmullrom';
                 }
-                
+
                 return curve;
             }
-            
+
             setupControls() {
                 const preventScroll = (e) => {
                     e.preventDefault();
@@ -1154,16 +1162,16 @@
 
                 const handleTouchMove = (event) => {
                     if (this.isModalOpen) return;
-                    
+
                     if (event.touches.length === 1 && this.isMobile && this.curve) {
                         const touch = event.touches[0];
                         const deltaY = touch.clientY - lastTouch.y;
-                        
+
                         if (Math.abs(deltaY) > 5) {
                             const direction = deltaY > 0 ? 1 : -1;
                             this.velocity += direction * this.acceleration;
                             this.velocity = Math.max(-this.maxSpeed, Math.min(this.maxSpeed, this.velocity));
-                            
+
                             lastTouch = { x: touch.clientX, y: touch.clientY };
                         }
                     }
@@ -1202,9 +1210,9 @@
                 const handleWheel = (event) => {
                     if (this.isModalOpen) return;
                     if (this.isMobile || !this.curve) return;
-                    
+
                     event.preventDefault();
-                    
+
                     const direction = event.deltaY > 0 ? 1 : -1;
                     this.velocity += direction * this.acceleration * this.scrollingSpeed;
                     this.velocity = Math.max(-this.maxSpeed, Math.min(this.maxSpeed, this.velocity));
@@ -1242,11 +1250,11 @@
                         e.preventDefault();
                     }
                 });
-                
+
                 if (this.isMobile) {
                     this.renderer.domElement.addEventListener('touchstart', handleTouchStart, { passive: false });
                     this.renderer.domElement.addEventListener('touchmove', handleTouchMove, { passive: false });
-                    
+
                     if (this.gyroscopeSupported && this.gyroscopePermission === 'granted') {
                         window.addEventListener('deviceorientation', handleDeviceOrientation);
                     }
@@ -1266,73 +1274,73 @@
                     this.renderer.setSize(this.canvasContainer.clientWidth, this.canvasContainer.clientHeight);
                 });
             }
-            
+
             updateCameraRotation() {
                 // Apply rotation to camera
                 this.camera.rotation.y = this.yaw;
                 this.camera.rotation.x = this.pitch;
                 this.camera.rotation.z = 0; // Prevent roll
             }
-            
+
             updateBodyPosition() {
                 if (!this.curve) return;
-                
+
                 // Update progress with inertia
                 this.currentProgress += this.velocity;
-                
+
                 // Loop progress (path is always closed)
                 if (this.currentProgress > 1) this.currentProgress -= 1;
                 if (this.currentProgress < 0) this.currentProgress += 1;
-                
+
                 // Get position on curve
                 const newPosition = this.curve.getPoint(this.currentProgress);
                 this.body.position.copy(newPosition);
-                
+
                 // Get direction of movement (tangent to curve)
                 const tangent = this.curve.getTangent(this.currentProgress);
-                
+
                 // Orient body along the path
                 this.body.lookAt(this.body.position.clone().add(tangent));
-                
+
                 // Apply deceleration (inertia)
                 this.velocity *= this.deceleration;
-                
+
                 // Stop movement if velocity becomes very small
                 if (Math.abs(this.velocity) < 0.0001) {
                     this.velocity = 0;
                 }
             }
-            
+
             animate() {
                 requestAnimationFrame(() => this.animate());
-                
+
                 // Update body position along path only if we have a valid curve
                 if (this.curve) {
                     this.updateBodyPosition();
-                    
+
                     // Auto-play if enabled
                     if (this.isPlaying && !this.isModalOpen) {
                         this.velocity += 0.0005 * this.scrollingSpeed;
                         this.velocity = Math.min(this.maxSpeed, this.velocity);
                     }
-                    
+
                     // Update progress display
                     this.updatePathProgress();
                 }
-                
+
                 // Update hint visibility
                 this.updateHintVisibility();
-                
+
                 // Render scene
                 this.renderer.render(this.scene, this.camera);
             }
-            
+
             updatePathProgress() {
                 const progress = (this.currentProgress % 1) * 100;
                 document.getElementById('progress-percent').textContent = Math.round(progress);
                 document.getElementById('progress-fill').style.width = progress + '%';
             }
-            
+
             worldToScreen(worldPosition) {
                 if (!this.camera || !this.renderer) return null;
 
@@ -1344,7 +1352,7 @@
 
                 return { x, y, z: vector.z };
             }
-            
+
             updateHintVisibility() {
                 if (!this.camera || this.hints.length === 0 || this.isModalOpen) return;
 
@@ -1353,17 +1361,17 @@
                 this.hints.forEach((hint, index) => {
                     const distance = this.camera.position.distanceTo(hint.position);
                     const isVisible = this.showAllHints || distance < this.hintVisibilityDistance;
-                    
+
                     if (isVisible) {
                         const screenPos = this.worldToScreen(hint.position);
-                        
+
                         if (screenPos && screenPos.z < 1) {
                             const baseSize = this.isMobile ? 40 : 32;
                             const maxSize = this.isMobile ? 80 : 64;
                             const minSize = this.isMobile ? 20 : 16;
                             const scaleFactor = Math.max(0.1, Math.min(1, this.hintVisibilityDistance / distance));
                             const size = Math.max(minSize, Math.min(maxSize, baseSize * scaleFactor));
-                            
+
                             const hintElement = document.createElement('div');
                             hintElement.className = 'absolute pointer-events-auto cursor-pointer transform -translate-x-1-2 -translate-y-1-2';
                             hintElement.style.left = screenPos.x + 'px';
@@ -1371,50 +1379,50 @@
                             hintElement.style.width = size + 'px';
                             hintElement.style.height = size + 'px';
                             hintElement.onclick = () => this.showHintModal(hint);
-                            
+
                             hintElement.innerHTML = `
                                 <div class="bg-white bg-opacity-90 rounded-full p-2 shadow-lg border-2 border-blue-500 hover-bg-opacity-100 transition-all duration-200">
                                     <span class="icon icon-${hint.icon} text-blue-600" style="display: block; width: 100%; height: 100%;"></span>
                                 </div>
                             `;
-                            
+
                             this.hintsOverlay.appendChild(hintElement);
                         }
                     }
                 });
             }
-            
+
             handleMapLoad(event) {
                 const file = event.target.files[0];
                 if (!file) return;
-                
+
                 // Check file extension
                 const fileName = file.name.toLowerCase();
                 if (!fileName.endsWith('.gltf') && !fileName.endsWith('.glb')) {
                     this.updateMapLoadStatus('Error: Please select a GLTF or GLB file', 'error');
                     return;
                 }
-                
+
                 // Create URL for the file
                 const fileURL = URL.createObjectURL(file);
-                
+
                 // Update status
                 this.updateMapLoadStatus('Loading model...', 'loading');
-                
+
                 // Load the model
                 this.gltfLoader.load(
                     fileURL,
-                    
+
                     // onLoad callback
                     (gltf) => {
                         // Remove previous model if exists
                         if (this.currentModel) {
                             this.scene.remove(this.currentModel);
                         }
-                        
+
                         const model = gltf.scene;
                         this.currentModel = model;
-                        
+
                         // Configure the model
                         model.traverse((child) => {
                             if (child.isMesh) {
@@ -1422,33 +1430,33 @@
                                 child.receiveShadow = true;
                             }
                         });
-                        
+
                         // Calculate model bounding box and center
                         const box = new THREE.Box3().setFromObject(model);
                         const center = box.getCenter(new THREE.Vector3());
                         const size = box.getSize(new THREE.Vector3());
-                        
+
                         // Calculate the offset needed to center the model
                         this.modelOffset = center.clone().multiplyScalar(-1);
-                        
+
                         // Center the model at origin
                         model.position.copy(this.modelOffset);
-                        
+
                         // Add to scene
                         this.scene.add(model);
-                        
+
                         // Update path with new offset
                         if (this.curve) {
                             this.setPathFromData({ points: this.path });
                         }
-                        
+
                         // Update status
                         this.updateMapLoadStatus(`Model loaded successfully! Size: ${size.x.toFixed(2)} x ${size.y.toFixed(2)} x ${size.z.toFixed(2)}`, 'success');
-                        
+
                         // Release the object URL
                         URL.revokeObjectURL(fileURL);
                     },
-                    
+
                     // onProgress callback
                     (xhr) => {
                         if (xhr.lengthComputable) {
@@ -1456,7 +1464,7 @@
                             this.updateMapLoadStatus(`Loading: ${percentComplete}%`, 'loading');
                         }
                     },
-                    
+
                     // onError callback
                     (error) => {
                         console.error('Error loading model:', error);
@@ -1464,13 +1472,13 @@
                     }
                 );
             }
-            
+
             updateMapLoadStatus(message, type) {
                 this.mapLoadStatus.textContent = message;
                 this.mapLoadStatus.className = `text-xs p-2 rounded ${type ? 'status-' + type : ''}`;
                 this.mapLoadStatus.classList.remove('hidden');
             }
-            
+
             handlePathLoad(event) {
                 const file = event.target.files[0];
                 if (!file) return;
@@ -1488,7 +1496,7 @@
                 };
                 reader.readAsText(file);
             }
-            
+
             handleHintLoad(event) {
                 const file = event.target.files[0];
                 if (!file) return;
@@ -1507,7 +1515,7 @@
                 };
                 reader.readAsText(file);
             }
-            
+
             loadHints(hintData) {
                 this.hints = [];
                 hintData.forEach((hint) => {
@@ -1516,7 +1524,7 @@
                         hint.position.y,
                         hint.position.z
                     ).add(this.modelOffset);
-                    
+
                     this.hints.push({
                         position: position,
                         title: hint.title,
@@ -1526,12 +1534,12 @@
                     });
                 });
             }
-            
+
             generateSamplePath() {
                 const samplePath = {
                     points: []
                 };
-                
+
                 for (let i = 0; i <= 100; i++) {
                     const t = i / 100;
                     const x = Math.cos(t * Math.PI * 4) * 20;
@@ -1539,12 +1547,12 @@
                     const y = 5 + Math.sin(t * Math.PI * 8) * 3;
                     samplePath.points.push({ x, y, z });
                 }
-                
+
                 this.path = samplePath.points; // Store original points
                 this.setPathFromData(samplePath);
                 alert('Sample spiral path generated!');
             }
-            
+
             generateSampleHints() {
                 const sampleHints = [
                     {
@@ -1573,14 +1581,14 @@
                 this.loadHints(sampleHints);
                 alert('Sample hints generated!');
             }
-            
+
             // UI methods
             togglePlay() {
                 if (!this.curve) {
                     alert('Please load a camera path first!');
                     return;
                 }
-                
+
                 this.isPlaying = !this.isPlaying;
                 const playBtn = document.getElementById('play-btn');
                 if (this.isPlaying) {
@@ -1591,10 +1599,10 @@
                     playBtn.className = playBtn.className.replace('button-destructive', 'button-default');
                 }
             }
-            
+
             resetCamera() {
                 if (!this.curve) return;
-                
+
                 this.currentProgress = 0;
                 this.velocity = 0;
                 this.updatePathProgress();
@@ -1602,13 +1610,13 @@
                 this.togglePlay(); // Update button state
                 this.updateBodyPosition();
             }
-            
+
             toggleShowAllHints() {
                 this.showAllHints = !this.showAllHints;
-                document.getElementById('toggle-hints-btn').textContent = 
+                document.getElementById('toggle-hints-btn').textContent =
                     this.showAllHints ? 'Hide Distant Hints' : 'Show All Hints';
             }
-            
+
             toggleUICollapse() {
                 const content = document.getElementById('panel-content');
                 const btn = document.getElementById('collapse-btn');
@@ -1620,28 +1628,28 @@
                     btn.innerHTML = '<span class="icon icon-chevron-down"></span>';
                 }
             }
-            
+
             showHintModal(hint) {
                 // Pause the game
                 this.isModalOpen = true;
-                
+
                 // Set modal content with the hint data
                 document.getElementById('hint-modal-title').textContent = hint.title;
                 document.getElementById('hint-modal-subtitle').textContent = hint.subtitle || '';
                 document.getElementById('hint-modal-text').textContent = hint.text;
-                
+
                 // Show modal
                 this.hintModal.style.display = 'flex';
             }
-            
+
             closeHintModal() {
                 // Resume the game
                 this.isModalOpen = false;
-                
+
                 // Hide modal
                 this.hintModal.style.display = 'none';
             }
-            
+
             async requestGyroscopePermission() {
                 if (typeof DeviceOrientationEvent.requestPermission === 'function') {
                     try {
@@ -1660,7 +1668,7 @@
                     }
                 }
             }
-            
+
             updateUI() {
                 // Show/hide path controls based on whether we have a path
                 if (this.curve) {
@@ -1668,7 +1676,7 @@
                 } else {
                     document.getElementById('path-controls').classList.add('hidden');
                 }
-                
+
                 // Update smoothing display
                 this.updateSmoothingDisplay();
             }
