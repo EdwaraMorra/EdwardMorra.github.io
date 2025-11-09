@@ -28,6 +28,39 @@
             background: #000;
         }
 
+        /* Прицел */
+        .crosshair {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 20px;
+            height: 20px;
+            pointer-events: none;
+            z-index: 1000;
+        }
+        
+        .crosshair::before,
+        .crosshair::after {
+            content: '';
+            position: absolute;
+            background: rgba(255, 255, 255, 0.8);
+        }
+        
+        .crosshair::before {
+            width: 2px;
+            height: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        
+        .crosshair::after {
+            width: 20px;
+            height: 2px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
         #canvas-container {
             width: 100vw;
             height: 100vh;
@@ -291,7 +324,7 @@
         }
 
         .shadow-lg {
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
         }
 
         .absolute {
@@ -549,6 +582,9 @@
         .hint-modal-header {
             padding: 1.5rem;
             border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
         }
 
         .hint-modal-title {
@@ -556,6 +592,7 @@
             font-weight: 600;
             margin-bottom: 0.5rem;
             color: #1f2937;
+            flex: 1;
         }
 
         .hint-modal-subtitle {
@@ -589,11 +626,91 @@
         .hint-modal-close-btn:hover {
             background: #1d4ed8;
         }
+
+        /* Close button in header */
+        .modal-close-button {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.25rem;
+            color: #6b7280;
+            transition: color 0.2s;
+            margin-left: 1rem;
+        }
+
+        .modal-close-button:hover {
+            color: #374151;
+        }
+
+        /* Hint icon styles */
+        .hint-icon {
+            position: absolute;
+            width: 32px;
+            height: 32px;
+            background: #2563eb;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            pointer-events: auto;
+            z-index: 30;
+            transform: translate(-50%, -50%);
+            transition: all 0.3s ease;
+            border: 2px solid white;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .hint-icon:hover {
+            transform: translate(-50%, -50%) scale(1.2);
+            background: #1d4ed8;
+        }
+
+        .hint-icon::before {
+            content: '💡';
+            font-size: 16px;
+        }
+
+        /* Shot effect */
+        .shot-effect {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0) 70%);
+            pointer-events: none;
+            z-index: 1001;
+            opacity: 0;
+            transition: opacity 0.1s;
+        }
+
+        .shot-effect.active {
+            opacity: 1;
+            animation: shotPulse 0.3s ease-out;
+        }
+
+        @keyframes shotPulse {
+            0% {
+                transform: translate(-50%, -50%) scale(0.5);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(2);
+                opacity: 0;
+            }
+        }
     </style>
 </head>
 <body>
     <div id="canvas-container"></div>
-
+    <!-- Прицел -->
+    <div class="crosshair"></div>
+    <!-- Эффект выстрела -->
+    <div id="shot-effect" class="shot-effect"></div>
     <!-- 2D Hint Icons Overlay -->
     <div id="hints-overlay" class="absolute inset-0 pointer-events-none z-30"></div>
 
@@ -667,21 +784,6 @@
                     </div>
                 </div>
 
-                <!-- Annotation loading -->
-                <div class="space-y-2">
-                    <label class="block text-sm font-medium">Annotations:</label>
-                    <div class="flex items-center space-x-2">
-                        <input type="file" accept=".json" id="annotation-upload" class="hidden">
-                        <button id="load-annotations-btn" class="button button-outline button-sm flex items-center space-x-1 text-xs">
-                            <span class="icon icon-map-pin"></span>
-                            <span>Load Annotations</span>
-                        </button>
-                        <button id="sample-annotations-btn" class="button button-outline button-sm text-xs">
-                            Sample Annotations
-                        </button>
-                    </div>
-                </div>
-
                 <!-- Hint settings -->
                 <div class="space-y-2">
                     <label class="block text-sm font-medium">Hint Settings:</label>
@@ -745,8 +847,7 @@
                 <div class="text-xs text-gray-600 space-y-1">
                     <p><strong>🖱️ Mouse:</strong> Move to look around (click to lock pointer)</p>
                     <p><strong>🎡 Mouse Wheel:</strong> Navigate along path (infinite loop)</p>
-                    <p><strong>💡 Hints:</strong> Click 2D icons to view information</p>
-                    <p><strong>📝 Annotations:</strong> Click annotation spheres to view details</p>
+                    <p><strong>💡 Hints:</strong> Click 2D icons or aim at invisible spheres and click to view information</p>
                     <p><strong>🚫 No Page Scroll:</strong> All scrolling disabled</p>
                     <p><strong>⚡ Speed Control:</strong> Adjust scrolling speed (0.1x - 3.0x)</p>
                     <p><strong>🔄 Path Smoothing:</strong> Control how smooth the path is between points</p>
@@ -760,8 +861,13 @@
     <div id="hint-modal">
         <div class="hint-modal-content">
             <div class="hint-modal-header">
-                <h2 id="hint-modal-title" class="hint-modal-title">Hint Title</h2>
-                <p id="hint-modal-subtitle" class="hint-modal-subtitle">Hint Subtitle</p>
+                <div>
+                    <h2 id="hint-modal-title" class="hint-modal-title">Hint Title</h2>
+                    <p id="hint-modal-subtitle" class="hint-modal-subtitle">Hint Subtitle</p>
+                </div>
+                <button id="modal-close-button" class="modal-close-button" title="Close">
+                    ×
+                </button>
             </div>
             <div class="hint-modal-body">
                 <p id="hint-modal-text">Hint text content will appear here when you click on a hint icon.</p>
@@ -803,9 +909,8 @@
                 this.isPointerLocked = false;
 
                 this.hints = [];
+                this.hintSpheres = [];
                 this.visibleHints = [];
-                this.annotations = [];
-                this.annotationSpheres = [];
 
                 // Current model
                 this.currentModel = null;
@@ -823,8 +928,9 @@
                 this.hintVisibilityDistance = 15;
                 this.pathSmoothing = 0.5;
 
-                // Modal state
+                // Modal and pause state
                 this.isModalOpen = false;
+                this.isPaused = false;
 
                 // DOM elements
                 this.canvasContainer = document.getElementById('canvas-container');
@@ -832,8 +938,10 @@
                 this.controlPanel = document.getElementById('control-panel');
                 this.mapLoadStatus = document.getElementById('map-load-status');
                 this.hintModal = document.getElementById('hint-modal');
+                this.shotEffect = document.getElementById('shot-effect');
+                this.modalCloseButton = document.getElementById('modal-close-button');
 
-                // Raycaster for annotations
+                // Raycaster for hints
                 this.raycaster = new THREE.Raycaster();
                 this.mouse = new THREE.Vector2();
 
@@ -841,6 +949,13 @@
                 this.acceleration = 0.0005;
                 this.deceleration = 0.95;
                 this.maxSpeed = 0.02;
+
+                // Control state
+                this.isControlCaptured = false;
+                this.previousMousePosition = { x: 0, y: 0 };
+
+                // Hint update optimization
+                this.hintUpdateThreshold = 0;
 
                 this.init();
             }
@@ -877,8 +992,7 @@
                     instructions.innerHTML = `
                         <p><strong>📱 Gyroscope:</strong> Tilt device to look around</p>
                         <p><strong>👆 Touch Scroll:</strong> Swipe vertically to navigate path</p>
-                        <p><strong>💡 Hints:</strong> Tap 2D icons to view information</p>
-                        <p><strong>📝 Annotations:</strong> Tap annotation spheres to view details</p>
+                        <p><strong>💡 Hints:</strong> Tap 2D icons or aim at invisible spheres and tap to view information</p>
                         <p><strong>🚫 No Page Scroll:</strong> All scrolling disabled</p>
                         <p><strong>⚡ Speed Control:</strong> Adjust scrolling speed (0.1x - 3.0x)</p>
                         <p><strong>🔄 Path Smoothing:</strong> Control how smooth the path is between points</p>
@@ -898,30 +1012,27 @@
                 document.getElementById('load-hints-btn').addEventListener('click', () => {
                     document.getElementById('hint-upload').click();
                 });
-                document.getElementById('load-annotations-btn').addEventListener('click', () => {
-                    document.getElementById('annotation-upload').click();
-                });
 
                 document.getElementById('map-upload').addEventListener('change', (e) => this.handleMapLoad(e));
                 document.getElementById('path-upload').addEventListener('change', (e) => this.handlePathLoad(e));
                 document.getElementById('hint-upload').addEventListener('change', (e) => this.handleHintLoad(e));
-                document.getElementById('annotation-upload').addEventListener('change', (e) => this.handleAnnotationLoad(e));
 
                 // Buttons
                 document.getElementById('sample-path-btn').addEventListener('click', () => this.generateSamplePath());
                 document.getElementById('sample-hints-btn').addEventListener('click', () => this.generateSampleHints());
-                document.getElementById('sample-annotations-btn').addEventListener('click', () => this.generateSampleAnnotations());
                 document.getElementById('enable-gyro-btn').addEventListener('click', () => this.requestGyroscopePermission());
                 document.getElementById('toggle-hints-btn').addEventListener('click', () => this.toggleShowAllHints());
                 document.getElementById('play-btn').addEventListener('click', () => this.togglePlay());
                 document.getElementById('reset-btn').addEventListener('click', () => this.resetCamera());
                 document.getElementById('collapse-btn').addEventListener('click', () => this.toggleUICollapse());
                 document.getElementById('hint-modal-close-btn').addEventListener('click', () => this.closeHintModal());
+                this.modalCloseButton.addEventListener('click', () => this.closeHintModal());
 
                 // Sliders
                 document.getElementById('hint-distance-slider').addEventListener('input', (e) => {
                     this.hintVisibilityDistance = parseInt(e.target.value);
                     document.getElementById('hint-distance-value').textContent = this.hintVisibilityDistance;
+                    this.updateHintVisibility();
                 });
 
                 document.getElementById('speed-slider').addEventListener('input', (e) => {
@@ -939,8 +1050,86 @@
                     }
                 });
 
-                // Click event for annotations
-                this.renderer?.domElement.addEventListener('click', (event) => this.handleAnnotationClick(event));
+                // Mouse events for FPS control
+                document.addEventListener('mousedown', (event) => {
+                    if (this.isPaused) return;
+                    
+                    if (event.button === 0) { // ЛКМ
+                        if (!this.isControlCaptured && !this.isMobile) {
+                            // Захватываем управление при первом клике
+                            this.captureControl();
+                            this.previousMousePosition = { x: event.clientX, y: event.clientY };
+                        } else {
+                            // Если управление уже захвачено - проверяем попадание в иконку
+                            const hitHint = this.checkIconHit();
+                            if (hitHint) {
+                                // Эффект выстрела
+                                this.shotEffect.classList.remove('active');
+                                void this.shotEffect.offsetWidth; // Trigger reflow
+                                this.shotEffect.classList.add('active');
+                                
+                                // Открываем подсказку
+                                setTimeout(() => {
+                                    this.showHintModal(hitHint);
+                                }, 100);
+                            }
+                        }
+                    }
+                });
+
+                // Touch events for mobile
+                if (this.isMobile) {
+                    document.addEventListener('touchstart', (event) => {
+                        if (this.isPaused) return;
+                        
+                        if (event.touches.length === 1) {
+                            const hitHint = this.checkIconHit();
+                            if (hitHint) {
+                                // Эффект выстрела
+                                this.shotEffect.classList.remove('active');
+                                void this.shotEffect.offsetWidth;
+                                this.shotEffect.classList.add('active');
+                                
+                                // Открываем подсказку
+                                setTimeout(() => {
+                                    this.showHintModal(hitHint);
+                                }, 100);
+                            }
+                        }
+                    }, { passive: true });
+                }
+            }
+
+            checkIconHit() {
+                const centerX = window.innerWidth / 2;
+                const centerY = window.innerHeight / 2;
+                const hitRadius = 50; // Уменьшил радиус попадания до 50 пикселей
+                
+                const hintIcons = this.hintsOverlay.querySelectorAll('.hint-icon');
+                for (let icon of hintIcons) {
+                    if (icon.style.display === 'none') continue;
+                    
+                    const rect = icon.getBoundingClientRect();
+                    const iconX = rect.left + rect.width / 2;
+                    const iconY = rect.top + rect.height / 2;
+                    
+                    const distance = Math.sqrt(
+                        Math.pow(iconX - centerX, 2) + Math.pow(iconY - centerY, 2)
+                    );
+                    
+                    if (distance < hitRadius) {
+                        const hintIndex = parseInt(icon.dataset.hintIndex);
+                        return this.visibleHints[hintIndex];
+                    }
+                }
+                return null;
+            }
+
+            captureControl() {
+                if (!this.isMobile) {
+                    this.renderer.domElement.requestPointerLock();
+                    this.isControlCaptured = true;
+                }
             }
 
             updateSmoothingDisplay() {
@@ -1111,7 +1300,7 @@
                 const pathGeometry = new THREE.BufferGeometry().setFromPoints(this.curve.getPoints(500));
                 const pathMaterial = new THREE.LineBasicMaterial({ color: 0x00ff00 });
                 this.pathLine = new THREE.Line(pathGeometry, pathMaterial);
-                  // this.scene.add(this.pathLine);
+                // this.scene.add(this.pathLine);
 
                 // Set initial position
                 if (points.length > 0) {
@@ -1147,6 +1336,8 @@
             setupControls() {
                 // Pointer lock for desktop
                 this.renderer.domElement.addEventListener('click', () => {
+                    if (this.isPaused) return;
+                    
                     if (!this.isPointerLocked && !this.isMobile) {
                         this.renderer.domElement.requestPointerLock();
                     }
@@ -1155,10 +1346,20 @@
                 // Pointer lock change event
                 document.addEventListener('pointerlockchange', () => {
                     this.isPointerLocked = document.pointerLockElement === this.renderer.domElement;
+                    this.isControlCaptured = this.isPointerLocked;
+                    
+                    // Показываем/скрываем курсор в зависимости от состояния pointer lock
+                    if (this.isPointerLocked) {
+                        document.body.style.cursor = 'none';
+                    } else {
+                        document.body.style.cursor = 'auto';
+                    }
                 });
 
                 // Mouse movement for camera rotation
                 document.addEventListener('mousemove', (event) => {
+                    if (this.isPaused) return;
+                    
                     if (this.isPointerLocked && !this.isMobile) {
                         const movementX = event.movementX || 0;
                         const movementY = event.movementY || 0;
@@ -1173,6 +1374,8 @@
 
                 // Mouse wheel for path navigation
                 document.addEventListener('wheel', (event) => {
+                    if (this.isPaused) return;
+                    
                     event.preventDefault();
 
                     // Calculate velocity based on wheel delta and speed setting
@@ -1183,12 +1386,14 @@
                     this.velocity = Math.max(-this.maxSpeed, Math.min(this.maxSpeed, this.velocity));
                 }, { passive: false });
 
-                // Touch events for mobile
+                // Touch events for mobile path navigation
                 if (this.isMobile) {
                     let touchStartY = 0;
                     let isScrolling = false;
 
                     document.addEventListener('touchstart', (event) => {
+                        if (this.isPaused) return;
+                        
                         if (event.touches.length === 1) {
                             touchStartY = event.touches[0].clientY;
                             isScrolling = true;
@@ -1196,6 +1401,8 @@
                     }, { passive: true });
 
                     document.addEventListener('touchmove', (event) => {
+                        if (this.isPaused) return;
+                        
                         if (isScrolling && event.touches.length === 1) {
                             const touchY = event.touches[0].clientY;
                             const deltaY = touchStartY - touchY;
@@ -1222,6 +1429,8 @@
             }
 
             updateCameraRotation() {
+                if (this.isPaused) return;
+                
                 if (this.isMobile && this.gyroscopePermission === 'granted') {
                     // Use gyroscope data for mobile
                     const { alpha, beta, gamma } = this.gyroscopeData;
@@ -1344,160 +1553,99 @@
                 event.target.value = ''; // Reset file input
             }
 
-            handleAnnotationLoad(event) {
-                const file = event.target.files[0];
-                if (!file) return;
-
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    try {
-                        const annotationData = JSON.parse(e.target.result);
-                        this.setAnnotationsFromData(annotationData);
-                    } catch (error) {
-                        console.error('Error parsing annotation file:', error);
-                        alert('Error loading annotation file: ' + error.message);
-                    }
-                };
-
-                reader.readAsText(file);
-                event.target.value = ''; // Reset file input
-            }
-
             setHintsFromData(hintData) {
-                this.hints = hintData.hints || [];
-                this.updateHintOverlay();
+                // Clear existing hints
+                this.hintSpheres.forEach(hint => {
+                    this.scene.remove(hint.sphere);
+                });
+                this.hints = [];
+                this.hintSpheres = [];
+
+                // Add new hints
+                hintData.hints.forEach((hint, index) => {
+                    this.addHint(hint, index);
+                });
+
+                this.updateHintVisibility();
             }
 
-            setAnnotationsFromData(annotationData) {
-                // Clear existing annotations
-                this.annotations.forEach(annotation => {
-                    this.scene.remove(annotation.sphere);
-                });
-                this.annotations = [];
-                this.annotationSpheres = [];
-
-                // Add new annotations
-                annotationData.annotations.forEach((annotation, index) => {
-                    this.addAnnotation(annotation, index);
-                });
-            }
-
-            addAnnotation(annotationData, index) {
-                // Create invisible sphere for interaction
-                const sphereGeometry = new THREE.SphereGeometry(annotationData.sphereRadius || 1, 8, 6);
+            addHint(hintData, index) {
+                // Create invisible sphere for 3D interaction
+                const sphereGeometry = new THREE.SphereGeometry(hintData.sphereRadius || 2, 8, 6);
                 const sphereMaterial = new THREE.MeshBasicMaterial({
-                    color: 0xff0000,
+                    color: 0xffff00,
                     transparent: true,
                     opacity: 0.0 // Completely invisible
                 });
 
                 const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
                 sphere.position.set(
-                    annotationData.spherePosition.x,
-                    annotationData.spherePosition.y,
-                    annotationData.spherePosition.z
+                    hintData.position.x + this.modelOffset.x,
+                    hintData.position.y + this.modelOffset.y,
+                    hintData.position.z + this.modelOffset.z
                 );
 
-                // Store annotation data
+                // Store hint data
                 sphere.userData = {
-                    isAnnotation: true,
-                    annotationIndex: index,
-                    title: annotationData.title,
-                    subtitle: annotationData.subtitle,
-                    text: annotationData.text
+                    isHint: true,
+                    hintIndex: index,
+                    title: hintData.title,
+                    subtitle: hintData.subtitle,
+                    text: hintData.text
                 };
 
                 this.scene.add(sphere);
-                this.annotations.push({
-                    data: annotationData,
+                this.hints.push(hintData);
+                this.hintSpheres.push({
+                    data: hintData,
                     sphere: sphere
                 });
-                this.annotationSpheres.push(sphere);
             }
 
-            handleAnnotationClick(event) {
-                if (this.isModalOpen) return;
-
-                // Calculate mouse position in normalized device coordinates
-                const rect = this.renderer.domElement.getBoundingClientRect();
-                this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-                this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-
-                // Update the raycaster
-                this.raycaster.setFromCamera(this.mouse, this.camera);
-
-                // Check for intersection with annotation spheres
-                const intersects = this.raycaster.intersectObjects(this.annotationSpheres);
-
-                if (intersects.length > 0) {
-                    const sphere = intersects[0].object;
-                    const annotationData = sphere.userData;
-
-                    // Show modal with annotation data
-                    this.showAnnotationModal(annotationData);
-                }
-            }
-
-            showAnnotationModal(annotationData) {
-                document.getElementById('hint-modal-title').textContent = annotationData.title;
-                document.getElementById('hint-modal-subtitle').textContent = annotationData.subtitle;
-                document.getElementById('hint-modal-text').textContent = annotationData.text;
+            showHintModal(hintData) {
+                document.getElementById('hint-modal-title').textContent = hintData.title;
+                document.getElementById('hint-modal-subtitle').textContent = hintData.subtitle;
+                document.getElementById('hint-modal-text').textContent = hintData.text;
                 this.hintModal.style.display = 'flex';
                 this.isModalOpen = true;
+                this.isPaused = true; // Ставим игру на паузу
+                
+                // Останавливаем движение камеры
+                this.velocity = 0;
+                if (this.isPlaying) {
+                    this.togglePlay(); // Останавливаем автовоспроизведение
+                }
+                
+                // Выходим из режима pointer lock и показываем курсор
+                if (this.isPointerLocked) {
+                    document.exitPointerLock();
+                }
+                document.body.style.cursor = 'auto'; // Возвращаем курсор
             }
 
             closeHintModal() {
                 this.hintModal.style.display = 'none';
                 this.isModalOpen = false;
-            }
-
-            updateHintOverlay() {
-                // Clear existing hints
-                this.hintsOverlay.innerHTML = '';
-
-                // Filter visible hints based on distance
-                this.visibleHints = this.hints.filter(hint => {
-                    if (this.showAllHints) return true;
-
-                    const hintPosition = new THREE.Vector3(
-                        hint.position.x + this.modelOffset.x,
-                        hint.position.y + this.modelOffset.y,
-                        hint.position.z + this.modelOffset.z
-                    );
-
-                    const distance = this.body.position.distanceTo(hintPosition);
-                    return distance <= this.hintVisibilityDistance;
-                });
-
-                // Create 2D hint icons
-                this.visibleHints.forEach((hint, index) => {
-                    const hintElement = document.createElement('div');
-                    hintElement.className = 'absolute w-8 h-8 bg-blue-600 rounded-full cursor-pointer pointer-events-auto transform -translate-x-1/2 -translate-y-1/2 z-30';
-                    hintElement.innerHTML = '💡';
-                    hintElement.title = hint.title;
-
-                    // Position will be updated in animate loop
-                    hintElement.dataset.hintIndex = index;
-
-                    this.hintsOverlay.appendChild(hintElement);
-
-                    // Add click event
-                    hintElement.addEventListener('click', () => {
-                        this.showHintModal(hint);
-                    });
-                });
-            }
-
-            showHintModal(hint) {
-                document.getElementById('hint-modal-title').textContent = hint.title;
-                document.getElementById('hint-modal-subtitle').textContent = hint.subtitle;
-                document.getElementById('hint-modal-text').textContent = hint.text;
-                this.hintModal.style.display = 'flex';
-                this.isModalOpen = true;
+                this.isPaused = false; // Снимаем игру с паузы
+                
+                // Если управление было захвачено, скрываем курсор
+                if (this.isControlCaptured && !this.isMobile) {
+                    document.body.style.cursor = 'none';
+                }
             }
 
             updateHintPositions() {
-                const hintElements = this.hintsOverlay.querySelectorAll('div');
+                // Пропускаем обновление если камера почти не двигалась (оптимизация)
+                if (this.hintUpdateThreshold > 0) {
+                    this.hintUpdateThreshold--;
+                    return;
+                }
+                this.hintUpdateThreshold = 1; // Обновлять каждые 2 кадра
+
+                // Обновляем матрицы камеры перед расчетом позиций
+                this.camera.updateMatrixWorld();
+                
+                const hintElements = this.hintsOverlay.querySelectorAll('.hint-icon');
                 hintElements.forEach(element => {
                     const hintIndex = parseInt(element.dataset.hintIndex);
                     const hint = this.visibleHints[hintIndex];
@@ -1520,12 +1668,69 @@
 
                             element.style.left = x + 'px';
                             element.style.top = y + 'px';
-                            element.style.display = 'block';
+                            element.style.display = 'flex';
                         } else {
                             element.style.display = 'none';
                         }
                     }
                 });
+            }
+
+            updateHintVisibility() {
+                // Clear existing 2D hints
+                this.hintsOverlay.innerHTML = '';
+
+                // Filter visible hints based on distance
+                this.visibleHints = this.hints.filter((hint, index) => {
+                    if (this.showAllHints) return true;
+
+                    const hintPosition = new THREE.Vector3(
+                        hint.position.x + this.modelOffset.x,
+                        hint.position.y + this.modelOffset.y,
+                        hint.position.z + this.modelOffset.z
+                    );
+
+                    const distance = this.body.position.distanceTo(hintPosition);
+                    return distance <= this.hintVisibilityDistance;
+                });
+
+                // Update 3D sphere visibility
+                this.hintSpheres.forEach((hintObj, index) => {
+                    const hint = this.hints[index];
+                    const hintPosition = new THREE.Vector3(
+                        hint.position.x + this.modelOffset.x,
+                        hint.position.y + this.modelOffset.y,
+                        hint.position.z + this.modelOffset.z
+                    );
+                    
+                    const distance = this.body.position.distanceTo(hintPosition);
+                    const shouldBeVisible = this.showAllHints || distance <= this.hintVisibilityDistance;
+                    
+                    hintObj.sphere.visible = shouldBeVisible;
+                });
+
+                // Create 2D hint icons
+                this.visibleHints.forEach((hint, index) => {
+                    const hintElement = document.createElement('div');
+                    hintElement.className = 'hint-icon';
+                    hintElement.title = hint.title;
+                    hintElement.dataset.hintIndex = index;
+
+                    // Add click event
+                    hintElement.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        this.showHintModal({
+                            title: hint.title,
+                            subtitle: hint.subtitle,
+                            text: hint.text
+                        });
+                    });
+
+                    this.hintsOverlay.appendChild(hintElement);
+                });
+
+                // Update positions
+                this.updateHintPositions();
             }
 
             generateSamplePath() {
@@ -1585,7 +1790,8 @@
                                 x: center.x - this.modelOffset.x,
                                 y: center.y - this.modelOffset.y + 2,
                                 z: center.z - this.modelOffset.z
-                            }
+                            },
+                            sphereRadius: 2.0
                         },
                         {
                             title: "Observation Deck",
@@ -1595,7 +1801,8 @@
                                 x: center.x - this.modelOffset.x + size.x * 0.3,
                                 y: center.y - this.modelOffset.y + size.y * 0.5,
                                 z: center.z - this.modelOffset.z
-                            }
+                            },
+                            sphereRadius: 2.5
                         },
                         {
                             title: "Hidden Corner",
@@ -1605,65 +1812,13 @@
                                 x: center.x - this.modelOffset.x - size.x * 0.2,
                                 y: center.y - this.modelOffset.y + 1,
                                 z: center.z - this.modelOffset.z - size.z * 0.2
-                            }
+                            },
+                            sphereRadius: 1.5
                         }
                     ]
                 };
 
                 this.setHintsFromData(sampleHints);
-            }
-
-            generateSampleAnnotations() {
-                if (!this.currentModel) {
-                    alert('Please load a map first to generate sample annotations.');
-                    return;
-                }
-
-                // Get model bounding box
-                const box = new THREE.Box3().setFromObject(this.currentModel);
-                const size = box.getSize(new THREE.Vector3());
-                const center = box.getCenter(new THREE.Vector3());
-
-                // Generate sample annotations
-                const sampleAnnotations = {
-                    annotations: [
-                        {
-                            title: "Main Structure",
-                            subtitle: "Architectural Feature",
-                            text: "This is the main architectural element of the scene. Notice the intricate details and design patterns that make this structure unique.",
-                            spherePosition: {
-                                x: center.x - this.modelOffset.x,
-                                y: center.y - this.modelOffset.y + size.y * 0.5,
-                                z: center.z - this.modelOffset.z
-                            },
-                            sphereRadius: 3.0
-                        },
-                        {
-                            title: "Entrance Portal",
-                            subtitle: "Access Point",
-                            text: "The main entrance to this virtual environment. This portal symbolizes the beginning of your journey through this digital space.",
-                            spherePosition: {
-                                x: center.x - this.modelOffset.x - size.x * 0.4,
-                                y: center.y - this.modelOffset.y + 1,
-                                z: center.z - this.modelOffset.z
-                            },
-                            sphereRadius: 2.5
-                        },
-                        {
-                            title: "Central Plaza",
-                            subtitle: "Meeting Area",
-                            text: "A spacious open area designed for gathering and observation. The central plaza serves as the heart of this virtual world.",
-                            spherePosition: {
-                                x: center.x - this.modelOffset.x,
-                                y: center.y - this.modelOffset.y + 0.5,
-                                z: center.z - this.modelOffset.z + size.z * 0.3
-                            },
-                            sphereRadius: 4.0
-                        }
-                    ]
-                };
-
-                this.setAnnotationsFromData(sampleAnnotations);
             }
 
             requestGyroscopePermission() {
@@ -1690,6 +1845,8 @@
 
             setupGyroscope() {
                 window.addEventListener('deviceorientation', (event) => {
+                    if (this.isPaused) return;
+                    
                     this.gyroscopeData = {
                         alpha: event.alpha || 0,
                         beta: event.beta || 0,
@@ -1702,10 +1859,12 @@
                 this.showAllHints = !this.showAllHints;
                 const button = document.getElementById('toggle-hints-btn');
                 button.textContent = this.showAllHints ? 'Hide All Hints' : 'Show All Hints';
-                this.updateHintOverlay();
+                this.updateHintVisibility();
             }
 
             togglePlay() {
+                if (this.isPaused) return;
+                
                 this.isPlaying = !this.isPlaying;
                 const button = document.getElementById('play-btn');
                 if (this.isPlaying) {
@@ -1716,6 +1875,8 @@
             }
 
             resetCamera() {
+                if (this.isPaused) return;
+                
                 this.currentProgress = 0;
                 this.velocity = 0;
                 this.isPlaying = false;
@@ -1791,8 +1952,12 @@
             animate() {
                 requestAnimationFrame(() => this.animate());
 
-                this.updateCameraPosition();
-                this.updateCameraRotation();
+                if (!this.isPaused) {
+                    this.updateCameraPosition();
+                    this.updateCameraRotation();
+                }
+                
+                // ОБНОВЛЯЕМ ПОЗИЦИИ ИКОНОК ПЕРЕД РЕНДЕРИНГОМ
                 this.updateHintPositions();
 
                 if (this.renderer && this.scene && this.camera) {
