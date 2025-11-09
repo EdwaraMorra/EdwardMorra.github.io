@@ -643,7 +643,7 @@
             color: #374151;
         }
 
-        /* Hint icon styles */
+        /* Hint icon styles - ИСПРАВЛЕНИЕ: убрана анимация для позиционирования */
         .hint-icon {
             position: absolute;
             width: 32px;
@@ -657,14 +657,18 @@
             pointer-events: auto;
             z-index: 30;
             transform: translate(-50%, -50%);
-            transition: all 0.3s ease;
+            /* УБРАНО: transition: all 0.3s ease; */
             border: 2px solid white;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            /* ДОБАВЛЕНО: мгновенное обновление позиции */
+            transition: none !important;
         }
 
         .hint-icon:hover {
             transform: translate(-50%, -50%) scale(1.2);
             background: #1d4ed8;
+            /* Оставляем transition только для hover эффектов */
+            transition: transform 0.3s ease, background 0.3s ease;
         }
 
         .hint-icon::before {
@@ -953,9 +957,6 @@
                 // Control state
                 this.isControlCaptured = false;
                 this.previousMousePosition = { x: 0, y: 0 };
-
-                // Hint update optimization
-                this.hintUpdateThreshold = 0;
 
                 this.init();
             }
@@ -1635,17 +1636,14 @@
             }
 
             updateHintPositions() {
-                // Пропускаем обновление если камера почти не двигалась (оптимизация)
-                if (this.hintUpdateThreshold > 0) {
-                    this.hintUpdateThreshold--;
-                    return;
-                }
-                this.hintUpdateThreshold = 1; // Обновлять каждые 2 кадра
-
-                // Обновляем матрицы камеры перед расчетом позиций
-                this.camera.updateMatrixWorld();
+                // Принудительно обновляем мировые матрицы камеры
+                this.camera.updateMatrixWorld(true);
+                this.camera.updateProjectionMatrix();
                 
                 const hintElements = this.hintsOverlay.querySelectorAll('.hint-icon');
+                const cameraWorldPosition = new THREE.Vector3();
+                this.camera.getWorldPosition(cameraWorldPosition);
+                
                 hintElements.forEach(element => {
                     const hintIndex = parseInt(element.dataset.hintIndex);
                     const hint = this.visibleHints[hintIndex];
@@ -1659,6 +1657,8 @@
 
                         // Convert 3D position to 2D screen position
                         const screenPosition = hintPosition.clone();
+                        
+                        // Используем текущую матрицу проекции камеры
                         screenPosition.project(this.camera);
 
                         // Check if hint is in front of camera
@@ -1666,9 +1666,14 @@
                             const x = (screenPosition.x * 0.5 + 0.5) * window.innerWidth;
                             const y = (-(screenPosition.y * 0.5) + 0.5) * window.innerHeight;
 
+                            // Принудительное обновление без анимации
+                            element.style.transition = 'none';
                             element.style.left = x + 'px';
                             element.style.top = y + 'px';
                             element.style.display = 'flex';
+                            
+                            // Принудительный reflow
+                            void element.offsetWidth;
                         } else {
                             element.style.display = 'none';
                         }
@@ -1955,10 +1960,13 @@
                 if (!this.isPaused) {
                     this.updateCameraPosition();
                     this.updateCameraRotation();
+                    
+                    // ОБНОВЛЯЕМ ПОЗИЦИИ ИКОНОК СРАЗУ ПОСЛЕ ВРАЩЕНИЯ КАМЕРЫ
+                    this.updateHintPositions();
+                } else {
+                    // Если на паузе, все равно обновляем позиции иконок
+                    this.updateHintPositions();
                 }
-                
-                // ОБНОВЛЯЕМ ПОЗИЦИИ ИКОНОК ПЕРЕД РЕНДЕРИНГОМ
-                this.updateHintPositions();
 
                 if (this.renderer && this.scene && this.camera) {
                     this.renderer.render(this.scene, this.camera);
