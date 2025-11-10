@@ -1571,8 +1571,8 @@
                 const sphereGeometry = new THREE.SphereGeometry(hintData.sphereRadius || 2, 8, 6);
                 const sphereMaterial = new THREE.MeshBasicMaterial({
                     color: 0xffff00,
-                    transparent: false,
-                    opacity: 1.0 // Completely invisible
+                    transparent: true,
+                    opacity: 0.0 // Completely invisible
                 });
 
                 const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
