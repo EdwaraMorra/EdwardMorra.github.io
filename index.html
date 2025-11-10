@@ -645,23 +645,19 @@
 
         /* Hint icon styles - ИСПРАВЛЕНИЕ: убрана анимация для позиционирования */
         .hint-icon {
-            position: absolute;
-            width: 32px;
-            height: 32px;
-            background: #2563eb;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            pointer-events: auto;
-            z-index: 30;
-            transform: translate(-50%, -50%);
-            /* УБРАНО: transition: all 0.3s ease; */
-            border: 2px solid white;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-            /* ДОБАВЛЕНО: мгновенное обновление позиции */
-            transition: none !important;
+        position: absolute;
+        width: 52px;
+        height: 52px;
+        background: #ffffff;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        pointer-events: auto;
+        z-index: 10;
+        transform: translate(-50%, -50%);
+        transition: none !important;
         }
 
         .hint-icon:hover {
